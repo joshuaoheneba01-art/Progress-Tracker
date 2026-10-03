@@ -239,6 +239,21 @@ export function settingsView(state, ctx) {
   const st = state.settings, p = ctx.perm, on = st.remind && p === "granted";
   const out = [];
 
+  out.push(el("div", { class: "card" },
+    el("h3", {}, "Alarms"),
+    el("div", { class: "sub mb8" }, st.alarms
+      ? `On. When a block starts, a full-screen alarm rings until you snooze or dismiss it. Sound is ${ctx.armed ? "armed" : "not armed yet: tap Arm alarms"}.`
+      : "Off. Blocks start without an alarm."),
+    el("div", { class: "row wrap-row" },
+      st.alarms ? btn("Turn alarms off", "alarms-off") : btn("Turn alarms on", "alarms-on", undefined, "btn pri"),
+      st.alarms && !ctx.armed && btn("Arm alarms", "arm", undefined, "btn pri"),
+      st.alarms && btn("Test alarm", "alarm-test"),
+      el("select", { class: "btn", "aria-label": "Snooze length on notifications", data: { a: "snooze-len" } },
+        [5, 10].map(m => el("option", { value: String(m), selected: m === st.snooze }, `Notification snooze: ${m} min`)))),
+    el("div", { class: "sub mt8" },
+      el("b", {}, "Honest limits: "),
+      "alarms only ring while this app is open, or was used recently and your phone hasn't paused it. A website cannot ring on a locked phone with the app closed. Real alarms come with the Android app (Stage 3). For now, the calendar file below is the most reliable alert. Turn on reminders too, so you also get a notification with Snooze and Dismiss buttons.")));
+
   const rem = [el("h3", {}, "Reminders")];
   if (p === "unsupported") {
     rem.push(el("div", { class: "sub" }, "This browser does not support notifications. Use the calendar file below instead."));
@@ -489,6 +504,10 @@ export function bannersView(b) {
   if (b.update) {
     out.push(el("button", { type: "button", class: "banner update", data: { a: "update" } },
       el("b", {}, "Update ready"), " · tap to refresh"));
+  }
+  if (b.arm) {
+    out.push(el("button", { type: "button", class: "banner", data: { a: "arm" } },
+      el("b", {}, "🔔 Tap to arm alarms"), " · lets block alarms make sound while the app is open"));
   }
   if (b.backup) {
     out.push(el("div", { class: "banner" },

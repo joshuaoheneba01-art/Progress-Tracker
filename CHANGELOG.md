@@ -14,8 +14,20 @@ The version is shown at the bottom of **Settings** in the app.
 | 5 | App split into modules, strict CSP, tracker runs off your own data | ✅ done |
 | 6 | Setup wizard + Plan tab (timetable editor) | ✅ done |
 | 7 | Offline service worker, "Update ready" banner, storage protection, backup nudge | ✅ done |
-| 8 | In-app alarm (Snooze / Dismiss) + notification actions | ⏳ next |
-| 9 | README, SECURITY.md, final hardening pass | ⬜ |
+| 8 | In-app alarm (Snooze / Dismiss) + notification actions | ✅ done |
+| 9 | README, SECURITY.md, final hardening pass | ⏳ next |
+
+## 0.8.0: Stage 1, step 8
+
+**Block alarms with Snooze and Dismiss.**
+
+- **Full-screen alarm when a block starts:** lectures, naps and study blocks get one; wind-down and already-ticked study blocks don't. It shows the title and time, with **Snooze 5 min**, **Snooze 10 min** and **Dismiss**. It beeps and vibrates, and repeats every 30 seconds until you act.
+- **Late opening:** if you open the app up to 5 minutes after a block started, it still rings ("Started 3 min ago").
+- **Arming the sound:** browsers block sound until you tap the page. Your first tap arms alarms for the session, and there's also a "🔔 Tap to arm alarms" banner.
+- **System notification** with **Snooze / Dismiss** buttons, if reminders are on. If the app was closed, Snooze opens it to save the snooze.
+- **Snoozes survive a reload.**
+- **Settings → Alarms:** turn them on or off, run **Test alarm**, and choose how long the notification's Snooze lasts.
+- **Honest limits:** alarms only ring while the app is open or recently used. A website can't ring on a locked phone with the app closed. Real alarms come with the Android app in Stage 3. The calendar file stays the most reliable alert for now.
 
 ## 0.7.0: Stage 1, step 7
 

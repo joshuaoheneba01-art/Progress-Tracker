@@ -6,14 +6,14 @@
 // - Other apps on the same github.io origin are left alone: we only ever
 //   delete caches whose names start with "stick-".
 
-const VERSION = "0.7.0";
+const VERSION = "0.8.0";
 const PREFIX = "stick-";
 const CACHE = PREFIX + VERSION;
 
 const ASSETS = [
   "./", "./index.html", "./manifest.webmanifest", "./css/app.css",
   "./js/main.js", "./js/schema.js", "./js/schedule.js", "./js/storage.js",
-  "./js/ui.js", "./js/ics.js", "./js/reminders.js",
+  "./js/ui.js", "./js/ics.js", "./js/reminders.js", "./js/alarm.js",
   "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-512-maskable.png",
 ];
 
@@ -64,10 +64,25 @@ self.addEventListener("fetch", e => {
   );
 });
 
+// Alarm notifications carry data.key ("2026-10-05@blockId") and two actions.
+// Snooze/Dismiss go to the open app; if the app is closed, Snooze opens it
+// with #alarm=snooze:<key> so the snooze can be saved (the service worker
+// cannot reach localStorage). Tapping the notification itself opens the app.
+const ALARM_KEY_RE = /^\d{4}-\d{2}-\d{2}@[A-Za-z0-9_-]{1,40}$/;
+
 self.addEventListener("notificationclick", e => {
-  e.notification.close();
+  const n = e.notification;
+  n.close();
+  const key = n.data && typeof n.data.key === "string" && ALARM_KEY_RE.test(n.data.key) ? n.data.key : null;
+  const action = e.action === "snooze" || e.action === "dismiss" ? e.action : "open";
+
   e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(cs => {
-    for (const c of cs) { if ("focus" in c) return c.focus(); }
+    const c = cs.find(x => x.url.startsWith(scope()));
+    if (key && action !== "open") {
+      if (c) { c.postMessage({ type: "alarm", action, key }); return undefined; }
+      return action === "snooze" ? self.clients.openWindow(`./#alarm=snooze:${key}`) : undefined;
+    }
+    if (c && "focus" in c) return c.focus();
     return self.clients.openWindow("./");
   }));
 });

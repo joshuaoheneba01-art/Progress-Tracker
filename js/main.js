@@ -1,16 +1,20 @@
 // Boot, state, routing and event delegation.
 // State changes go through commit(): copy → change → validate + save → render.
 
-import { defaultState, uid, isHHMM, LIMITS, LEADS, DAYS, PALETTE_SIZE } from "./schema.js";
-import { studyDayOf, weekKey, toHHMM, draftToBlock, addRecurring } from "./schedule.js";
+import { defaultState, uid, isHHMM, isPlainObject, LIMITS, LEADS, SNOOZES, DAYS, PALETTE_SIZE } from "./schema.js";
+import { studyDayOf, weekKey, toHHMM, isoDate, draftToBlock, addRecurring } from "./schedule.js";
+import { arm, isArmed, showAlarm, closeAlarm, currentAlarm } from "./alarm.js";
 import { loadState, saveState, templateMcJayy, exportBackup, parseImport, needsBackup, isPersisted, requestPersist, KEY } from "./storage.js";
 import { buildICS } from "./ics.js";
 import { tabsBar, dayView, progressView, planView, projectsView, settingsView, wizardView, bannersView, toastNode } from "./ui.js";
-import { checkReminders, showNote, permission, canNotify } from "./reminders.js";
+import {
+  checkReminders, showNote, permission, canNotify, KEY_RE,
+  dueAlarms, addSnooze, loadAlarmStore, saveAlarmStore, notifyAlarm, closeAlarmNotification,
+} from "./reminders.js";
 
 // Shown in Settings so you can tell which upgrade is live. Bump with each
 // release together with VERSION in sw.js (see CHANGELOG.md).
-const APP_VERSION = "0.7.0 · Stage 1, step 7 of 9";
+const APP_VERSION = "0.8.0 · Stage 1, step 8 of 9";
 
 const $ = id => document.getElementById(id);
 const app = $("app");
@@ -67,6 +71,7 @@ function context() {
     canInstall: !!deferredInstall,
     version: APP_VERSION,
     persisted,
+    armed: isArmed(),
     offline: !!(navigator.serviceWorker && navigator.serviceWorker.controller),
   };
 }
@@ -82,7 +87,11 @@ const VIEWS = { day: dayView, progress: progressView, plan: planView, projects: 
 function render() {
   applyTheme();
   if (!state && !wiz) wiz = newWizard();
-  const banners = bannersView({ update: !!waitingWorker, backup: !wiz && !backupLater && needsBackup(state) });
+  const banners = bannersView({
+    update: !!waitingWorker,
+    arm: !wiz && !!state && state.settings.alarms && !isArmed(),
+    backup: !wiz && !backupLater && needsBackup(state),
+  });
   if (wiz) {
     $("dateLine").textContent = "";
     app.replaceChildren(...banners, ...wizardView(wiz, { hasState: !!state, source }));
@@ -315,6 +324,19 @@ const clicks = {
     toast([ok ? "Storage is now protected." : "The browser said no for now. Installing the app usually makes it say yes; keep exporting backups meanwhile."]);
   }),
   "backup-later": () => { backupLater = true; render(); },
+
+  // Alarms
+  "arm": () => arm({ chirp: true }).then(ok => {
+    render();
+    toast([ok ? "Alarms armed. They will ring while the app is open." : "This browser can't play alarm sounds. Alarms will still show on screen and vibrate."]);
+  }),
+  "alarms-on": () => commit(s => { s.settings.alarms = true; }),
+  "alarms-off": () => commit(s => { s.settings.alarms = false; }),
+  "alarm-test": () => {
+    const sd = studyDayOf(new Date(), state.profile.bedtime);
+    const start = Math.min(sd.minute, LIMITS.maxTime - 30);
+    fireAlarm({ key: `${isoDate(sd.date)}@alarm-test`, blockId: "alarm-test", title: "Test alarm", start, end: start + 30, kind: "study" });
+  },
   "wz-open": () => {
     if (!confirm("Set up your week again? This replaces your timetable, and ticks on the old blocks are lost. Projects, counters and settings are kept.")) return;
     wiz = newWizard();
@@ -377,6 +399,9 @@ document.addEventListener("change", ev => {
   if (a === "lead") {
     const v = +n.value;
     if (LEADS.includes(v)) commit(s => { s.settings.lead = v; });
+  } else if (a === "snooze-len") {
+    const v = +n.value;
+    if (SNOOZES.includes(v)) commit(s => { s.settings.snooze = v; });
   } else if (a === "prof-name") {
     commit(s => { s.profile.name = n.value; });
   } else if (a === "prof-bed") {
@@ -401,6 +426,57 @@ function importFile(n) {
   }, () => toast(["That file could not be read."]));
 }
 
+// ---------- alarms ----------
+
+function fireAlarm(a) {
+  showAlarm(a, { onSnooze: m => snoozeAlarm(a, m), onDismiss: () => closeAlarmNotification(a.key) }, SNOOZES);
+  notifyAlarm(a, state.settings.snooze);
+}
+
+function snoozeAlarm(a, minutes) {
+  closeAlarm(a.key);
+  saveAlarmStore(addSnooze(loadAlarmStore(), a, minutes));
+  closeAlarmNotification(a.key);
+  toast([`Snoozed for ${minutes} min. Keep the app open so it can ring again.`]);
+}
+
+function tickAlarms() {
+  if (!state) return;
+  const r = dueAlarms(state, new Date(), loadAlarmStore());
+  saveAlarmStore(r.store);
+  r.fire.forEach(fireAlarm);
+}
+
+// Snooze / Dismiss tapped on a system notification (sent by sw.js, or via
+// the #alarm=… link it opens when the app was closed).
+function alarmAction(action, key) {
+  if (!state || !KEY_RE.test(key) || (action !== "snooze" && action !== "dismiss")) return;
+  if (action === "dismiss") { closeAlarm(key); closeAlarmNotification(key); return; }
+  const cur = currentAlarm();
+  let a = cur && cur.key === key ? cur : null;
+  if (!a) {
+    const b = state.blocks.find(x => x.id === key.slice(11));
+    if (b) a = { key, blockId: b.id, title: b.title, start: b.start, end: b.end, kind: b.kind };
+  }
+  if (a) snoozeAlarm(a, state.settings.snooze);
+  else closeAlarm(key);
+}
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", e => {
+    const d = e.data;
+    if (isPlainObject(d) && d.type === "alarm" && typeof d.action === "string" && typeof d.key === "string") alarmAction(d.action, d.key);
+  });
+}
+
+// Any tap unlocks alarm sound (browsers require a tap before audio plays).
+document.addEventListener("click", () => {
+  if (isArmed() || !state || !state.settings.alarms) return;
+  arm().then(ok => { if (ok) setTimeout(() => { if (!typing()) render(); }, 0); });
+}, true);
+
+setInterval(tickAlarms, 10000);
+
 // ---------- browser events ----------
 
 window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; if (state && !wiz && tab === "settings") render(); });
@@ -412,6 +488,7 @@ document.addEventListener("visibilitychange", () => {
   checkForUpdate();
   if (!state) return;
   checkReminders(state);
+  tickAlarms();
   if (!wiz && (tab === "day" || tab === "progress") && !typing()) render();
 });
 
@@ -471,6 +548,16 @@ source = loaded.source;
 render();
 if (source === "migrated") toast(["Your old timetable and progress were moved into the new app.", ...loaded.notes]);
 if (state) checkReminders(state);
+
+function readAlarmHash() {
+  if (!location.hash) return;
+  const m = /^#alarm=(snooze|dismiss):(\d{4}-\d{2}-\d{2}@[A-Za-z0-9_-]{1,40})$/.exec(location.hash);
+  history.replaceState(null, "", location.pathname + location.search); // never leave a link half-handled
+  if (m) alarmAction(m[1], m[2]);
+}
+readAlarmHash();
+window.addEventListener("hashchange", readAlarmHash);
+tickAlarms();
 
 // Ask the browser to keep our data even when space runs low. Chrome decides
 // quietly (yes for installed apps); some browsers ask the user.

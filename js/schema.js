@@ -53,7 +53,7 @@ export function defaultState() {
     progress: {},
     projects: [],
     counters: [],
-    settings: { remind: false, lead: 10, snooze: 10, lastBackup: 0, theme: "auto" },
+    settings: { remind: false, alarms: true, lead: 10, snooze: 10, lastBackup: 0, theme: "auto" },
   };
 }
 
@@ -212,6 +212,7 @@ export function validate(raw) {
   if (SNOOZES.includes(s.snooze)) out.settings.snooze = s.snooze;
   if (isInt(s.lastBackup, 0, 8.64e15)) out.settings.lastBackup = s.lastBackup;
   if (THEMES.includes(s.theme)) out.settings.theme = s.theme;
+  if (typeof s.alarms === "boolean") out.settings.alarms = s.alarms;
 
   return { ok: true, data: out, errors };
 }
