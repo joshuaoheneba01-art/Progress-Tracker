@@ -24,6 +24,8 @@ export async function arm({ chirp = false } = {}) {
   try {
     const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
     if (!AC) return false;
+    // Only during a real tap; otherwise the browser refuses and logs a warning.
+    if (navigator.userActivation && !navigator.userActivation.isActive) return isArmed();
     if (!ctx) ctx = new AC();
     if (ctx.state !== "running") await ctx.resume();
     if (chirp) tone(0, 1320, 0.12, 0.15);

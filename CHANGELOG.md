@@ -17,6 +17,10 @@ The version is shown at the bottom of **Settings** in the app.
 | 8 | In-app alarm (Snooze / Dismiss) + notification actions | ✅ done |
 | 9 | README, SECURITY.md, final hardening pass | ⏳ next |
 
+## 0.8.1
+
+- Alarm sound is now only switched on by a real tap, which removes a browser warning.
+
 ## 0.8.0: Stage 1, step 8
 
 **Block alarms with Snooze and Dismiss.**
