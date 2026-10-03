@@ -156,3 +156,20 @@ test("import accepts the old app's export and rejects hostile files", () => {
   assert.equal(parseImport(" ".repeat(300 * 1024) + "{}").ok, false); // over 256 KB
   assert.match(parseImport("x".repeat(300 * 1024)).notes[0], /too big/);
 });
+
+test("backup nudge: 7 days after the last export, or a week into use if never exported", async () => {
+  const { needsBackup } = await import("../js/storage.js");
+  const day = 86400000, now = new Date(2026, 9, 20, 12).getTime();
+  const s = templateMcJayy();
+  assert.equal(needsBackup(null, now), false);
+  assert.equal(needsBackup(defaultState(), now), false, "nothing to back up yet");
+  assert.equal(needsBackup(s, now), false, "never exported, no ticks yet");
+  s.progress["2026-10-19"] = { "mcj-MON-990": true };
+  assert.equal(needsBackup(s, now), false, "never exported, only a day of use");
+  s.progress["2026-10-05"] = { "mcj-MON-990": true };
+  assert.equal(needsBackup(s, now), true, "never exported, two weeks of use");
+  s.settings.lastBackup = now - 6 * day;
+  assert.equal(needsBackup(s, now), false);
+  s.settings.lastBackup = now - 8 * day;
+  assert.equal(needsBackup(s, now), true);
+});

@@ -180,6 +180,18 @@ export function parseImport(text) {
   return { ok: r.ok, data: r.data, notes: r.ok ? r.errors : ["That file is not a tracker backup.", ...r.errors] };
 }
 
+// True when it's time to nudge an export: more than 7 days since the last
+// one, or (never exported) the user has ticks from over 7 days ago.
+const WEEK_MS = 7 * 86400000;
+export function needsBackup(state, now = Date.now()) {
+  if (!state || !state.blocks.length) return false;
+  if (state.settings.lastBackup > 0) return now - state.settings.lastBackup > WEEK_MS;
+  const weeks = Object.keys(state.progress).sort();
+  if (!weeks.length) return false;
+  const [y, m, d] = weeks[0].split("-").map(Number);
+  return now - new Date(y, m - 1, d, 12).getTime() > WEEK_MS;
+}
+
 // ---------- browser storage protection ----------
 
 export async function isPersisted() {

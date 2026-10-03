@@ -278,6 +278,16 @@ export function settingsView(state, ctx) {
         el("input", { type: "file", class: "hidden", accept: "application/json,.json", data: { a: "import" } })))));
 
   out.push(el("div", { class: "card" },
+    el("h3", {}, "Storage and offline"),
+    el("div", { class: "row mb8" },
+      el("span", { class: ctx.persisted ? "pill ok" : "pill" }, ctx.persisted ? "Storage protected" : "Storage not protected"),
+      el("span", { class: ctx.offline ? "pill ok" : "pill" }, ctx.offline ? "Works offline" : "Offline not ready yet")),
+    el("div", { class: "sub mb8" }, ctx.persisted
+      ? "Your browser has agreed not to clear this app's data when space runs low."
+      : "If your phone runs low on space, the browser may clear this app's data. Installing the app helps, and so do regular backups."),
+    !ctx.persisted && btn("Protect storage", "persist")));
+
+  out.push(el("div", { class: "card" },
     el("h3", {}, "Timetable"),
     el("div", { class: "sub mb8" }, "Change single blocks in the Plan tab. To start your week over, run the setup again; your projects, counters and settings are kept."),
     btn("Run setup again", "wz-open")));
@@ -470,6 +480,21 @@ export function wizardView(wiz, { hasState, source }) {
     el("div", { class: "grow" }),
     hasState && btn("Cancel", "wz-cancel"),
     wiz.step === 6 ? btn("Finish", "wz-finish", undefined, "btn pri") : btn("Next", "wz-next", undefined, "btn pri")));
+  return out;
+}
+
+// Banners above every view. b: { update, backup }
+export function bannersView(b) {
+  const out = [];
+  if (b.update) {
+    out.push(el("button", { type: "button", class: "banner update", data: { a: "update" } },
+      el("b", {}, "Update ready"), " · tap to refresh"));
+  }
+  if (b.backup) {
+    out.push(el("div", { class: "banner" },
+      el("div", { class: "mb8" }, "It has been over a week since your last backup. Your data lives only on this phone."),
+      el("div", { class: "row wrap-row" }, btn("Export now", "export", undefined, "btn pri"), btn("Later", "backup-later"))));
+  }
   return out;
 }
 

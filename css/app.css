@@ -149,3 +149,9 @@ textarea{ min-height:64px; resize:vertical; }
 .wz-item{ display:flex; align-items:center; gap:8px; border-top:1px solid var(--line); font-size:13.5px; overflow-wrap:anywhere; }
 .wz-day{ padding:6px 0; border-top:1px solid var(--line); }
 .wz-day:first-of-type{ border-top:0; }
+
+/* step 7: update banner and status pills */
+button.banner{ display:block; width:100%; min-height:48px; text-align:left; font:inherit; color:var(--text); cursor:pointer; }
+.banner.update{ background:var(--accent); border-color:var(--accent); color:#04201d; }
+.pill{ display:inline-block; font-size:12px; font-weight:700; padding:4px 10px; border-radius:99px; background:var(--soft); color:var(--danger); border:1px solid var(--line); }
+.pill.ok{ color:var(--accent); }

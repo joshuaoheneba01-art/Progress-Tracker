@@ -13,9 +13,23 @@ The version is shown at the bottom of **Settings** in the app.
 | 4 | Safe `.ics` calendar export | ✅ done |
 | 5 | App split into modules, strict CSP, tracker runs off your own data | ✅ done |
 | 6 | Setup wizard + Plan tab (timetable editor) | ✅ done |
-| 7 | Offline service worker, "Update ready" banner, storage protection, backup nudge | ⏳ next |
-| 8 | In-app alarm (Snooze / Dismiss) + notification actions | ⬜ |
+| 7 | Offline service worker, "Update ready" banner, storage protection, backup nudge | ✅ done |
+| 8 | In-app alarm (Snooze / Dismiss) + notification actions | ⏳ next |
 | 9 | README, SECURITY.md, final hardening pass | ⬜ |
+
+## 0.7.0: Stage 1, step 7
+
+**Works fully offline, and updates never happen behind your back.**
+
+- **"Update ready · tap to refresh":** when a new version is published, it downloads in the background and waits. The app only switches when you tap the banner, so code never changes while you're using it.
+- **Offline:** the whole app is stored on the phone, including editing your timetable. Tested in airplane mode.
+- **Settings → Storage and offline** shows "Storage protected / not protected" and "Works offline". There's a **Protect storage** button. The app also asks the browser for protection by itself on start.
+- **Backup reminder:** a banner appears after 7 days without an export (or a week into using the app if you've never exported). "Export now" or "Later".
+- **Two tabs open?** A change in one shows up in the other instead of being overwritten.
+- **Safety:**
+  - The service worker only handles this app's own requests.
+  - It never stores error or third-party responses.
+  - It only removes its own old caches, so other apps on the same github.io address are untouched.
 
 ## 0.6.0: Stage 1, steps 1–6
 

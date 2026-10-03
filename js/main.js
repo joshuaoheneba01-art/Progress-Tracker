@@ -3,13 +3,14 @@
 
 import { defaultState, uid, isHHMM, LIMITS, LEADS, DAYS, PALETTE_SIZE } from "./schema.js";
 import { studyDayOf, weekKey, toHHMM, draftToBlock, addRecurring } from "./schedule.js";
-import { loadState, saveState, templateMcJayy, exportBackup, parseImport } from "./storage.js";
+import { loadState, saveState, templateMcJayy, exportBackup, parseImport, needsBackup, isPersisted, requestPersist, KEY } from "./storage.js";
 import { buildICS } from "./ics.js";
-import { tabsBar, dayView, progressView, planView, projectsView, settingsView, wizardView, toastNode } from "./ui.js";
+import { tabsBar, dayView, progressView, planView, projectsView, settingsView, wizardView, bannersView, toastNode } from "./ui.js";
 import { checkReminders, showNote, permission, canNotify } from "./reminders.js";
 
-// Shown in Settings so you can tell which upgrade is live. Bump with each release (see CHANGELOG.md).
-const APP_VERSION = "0.6.0 · Stage 1, step 6 of 9";
+// Shown in Settings so you can tell which upgrade is live. Bump with each
+// release together with VERSION in sw.js (see CHANGELOG.md).
+const APP_VERSION = "0.7.0 · Stage 1, step 7 of 9";
 
 const $ = id => document.getElementById(id);
 const app = $("app");
@@ -22,6 +23,10 @@ let planDay = null;   // Plan tab: null = follow today
 let editing = null;   // Plan tab form: { id, isNew, copy, draft, errors }
 let wiz = null;       // setup wizard, see newWizard()
 let deferredInstall = null;
+let waitingWorker = null;   // a new version that is installed and waiting
+let updateRequested = false;
+let persisted = false;
+let backupLater = false;    // "Later" on the backup nudge, for this session
 
 // ---------- state ----------
 
@@ -61,6 +66,8 @@ function context() {
     installed: (globalThis.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true,
     canInstall: !!deferredInstall,
     version: APP_VERSION,
+    persisted,
+    offline: !!(navigator.serviceWorker && navigator.serviceWorker.controller),
   };
 }
 
@@ -75,14 +82,15 @@ const VIEWS = { day: dayView, progress: progressView, plan: planView, projects: 
 function render() {
   applyTheme();
   if (!state && !wiz) wiz = newWizard();
+  const banners = bannersView({ update: !!waitingWorker, backup: !wiz && !backupLater && needsBackup(state) });
   if (wiz) {
     $("dateLine").textContent = "";
-    app.replaceChildren(...wizardView(wiz, { hasState: !!state, source }));
+    app.replaceChildren(...banners, ...wizardView(wiz, { hasState: !!state, source }));
     return;
   }
   const ctx = context();
   $("dateLine").textContent = ctx.today.date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-  app.replaceChildren(tabsBar(tab), ...(VIEWS[tab] || dayView)(state, ctx));
+  app.replaceChildren(...banners, tabsBar(tab), ...(VIEWS[tab] || dayView)(state, ctx));
 }
 
 let toastTimer = 0;
@@ -296,6 +304,17 @@ const clicks = {
     download(b.name, "application/json", b.text);
     commit(s => { s.settings.lastBackup = Date.now(); });
   },
+  "update": () => {
+    if (!waitingWorker) return;
+    updateRequested = true;
+    waitingWorker.postMessage("SKIP_WAITING"); // page reloads on controllerchange
+  },
+  "persist": () => requestPersist().then(ok => {
+    persisted = ok;
+    render();
+    toast([ok ? "Storage is now protected." : "The browser said no for now. Installing the app usually makes it say yes; keep exporting backups meanwhile."]);
+  }),
+  "backup-later": () => { backupLater = true; render(); },
   "wz-open": () => {
     if (!confirm("Set up your week again? This replaces your timetable, and ticks on the old blocks are lost. Projects, counters and settings are kept.")) return;
     wiz = newWizard();
@@ -330,7 +349,7 @@ document.addEventListener("click", ev => {
     return;
   }
   const fn = clicks[a];
-  if (fn && (state || a === "theme")) fn(k);
+  if (fn && (state || a === "theme" || a === "update")) fn(k);
 });
 
 // Form fields marked data-f keep their value in the wizard or editor draft,
@@ -389,9 +408,18 @@ window.addEventListener("appinstalled", () => { deferredInstall = null; if (stat
 
 const typing = () => app.contains(document.activeElement) && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden || !state) return;
+  if (document.hidden) return;
+  checkForUpdate();
+  if (!state) return;
   checkReminders(state);
   if (!wiz && (tab === "day" || tab === "progress") && !typing()) render();
+});
+
+// Another tab of the app saved: pick up its data instead of overwriting it later.
+window.addEventListener("storage", e => {
+  if (e.key !== KEY) return;
+  const r = loadState();
+  if (r.state) { state = r.state; if (!typing()) render(); }
 });
 setInterval(() => {
   if (!state) return;
@@ -399,8 +427,40 @@ setInterval(() => {
   if (!wiz && tab === "day" && !document.hidden && !typing()) render(); // keeps "Right now" current
 }, 30000);
 
+// ---------- service worker and updates ----------
+// A new version installs in the background, then waits. We show
+// "Update ready" and only switch when the user taps it.
+
+let swReg = null, lastUpdateCheck = 0;
+
+function onWaiting(w) {
+  if (!w || !navigator.serviceWorker.controller) return; // first install: nothing to replace
+  waitingWorker = w;
+  render();
+}
+
+function checkForUpdate() {
+  if (!swReg || Date.now() - lastUpdateCheck < 30 * 60000) return;
+  lastUpdateCheck = Date.now();
+  swReg.update().catch(() => {});
+}
+
 if ("serviceWorker" in navigator && location.protocol !== "file:") {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.register("sw.js").then(reg => {
+    swReg = reg;
+    lastUpdateCheck = Date.now();
+    if (reg.waiting) onWaiting(reg.waiting);
+    reg.addEventListener("updatefound", () => {
+      const w = reg.installing;
+      if (w) w.addEventListener("statechange", () => { if (w.state === "installed") onWaiting(w); });
+    });
+  }).catch(() => {});
+
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (updateRequested && !reloading) { reloading = true; location.reload(); }
+    else render(); // first install took control: "Works offline" can turn on
+  });
 }
 
 // ---------- boot ----------
@@ -411,3 +471,11 @@ source = loaded.source;
 render();
 if (source === "migrated") toast(["Your old timetable and progress were moved into the new app.", ...loaded.notes]);
 if (state) checkReminders(state);
+
+// Ask the browser to keep our data even when space runs low. Chrome decides
+// quietly (yes for installed apps); some browsers ask the user.
+isPersisted().then(p => {
+  persisted = p;
+  if (p || !state) return render();
+  return requestPersist().then(ok => { persisted = ok; render(); });
+});
