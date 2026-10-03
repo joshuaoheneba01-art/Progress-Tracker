@@ -1,5 +1,10 @@
-const CACHE = "stick-v1";
-const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-180.png"];
+// Interim list for step 5; the full service worker rewrite is step 7.
+const CACHE = "stick-v2";
+const ASSETS = [
+  "./", "./index.html", "./manifest.webmanifest", "./css/app.css",
+  "./js/main.js", "./js/schema.js", "./js/schedule.js", "./js/storage.js", "./js/ui.js", "./js/ics.js", "./js/reminders.js",
+  "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-512-maskable.png",
+];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
