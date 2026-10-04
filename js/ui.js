@@ -7,10 +7,12 @@ import { DAYS, KINDS, PALETTE_SIZE, LIMITS } from "./schema.js";
 import { TEMPLATES } from "./storage.js";
 import { previewImport } from "./importers.js";
 import { remainingMs, progress, fmtClock } from "./focus.js";
+import { missedBlocks, suggestSlots } from "./catchup.js";
 import { SESSION_CHOICES } from "./generator.js";
 import {
   fmtRange, fmtHours, dur, blocksForDay, currentAndNext, dayStats, weekStats,
   planned, sum, streak, weekStart, addDays, isoDate, findOverlaps, sleepReport, fmtDuration, inputToRange,
+  dateFor, extrasOn, findBlock, parseISODate,
 } from "./schedule.js";
 
 const DAY_NAMES = { MON: "Monday", TUE: "Tuesday", WED: "Wednesday", THU: "Thursday", FRI: "Friday", SAT: "Saturday", SUN: "Sunday" };
@@ -111,7 +113,9 @@ export function dayView(state, ctx) {
       el("div", { class: "n" }, d), el("div", { class: "p" }, `${p}%`));
   })));
 
-  const blocks = blocksForDay(state.blocks, sel);
+  // The week's blocks for this day plus any one-off make-ups on its date.
+  const blocks = [...blocksForDay(state.blocks, sel), ...extrasOn(state, dateFor(ctx.wk, sel))]
+    .sort((a, b) => a.start - b.start || a.end - b.end);
   let curId = null;
   if (isToday) {
     const { cur, next } = currentAndNext(blocks, ctx.today.minute);
@@ -129,6 +133,8 @@ export function dayView(state, ctx) {
       : el("div", { class: "card now" },
           el("div", { class: "k" }, "Day finished"),
           el("div", { class: "v" }, "Rest up. Tomorrow you go again.")));
+    const cu = catchUpCard(state, ctx);
+    if (cu) out.push(cu);
   }
 
   if (!blocks.length) {
@@ -156,7 +162,7 @@ export function dayView(state, ctx) {
       out.push(el("div", { class: "rest" }, b.kind === "nap" ? "😴" : "🌙", el("span", { text: `${t} · ${b.title}` })));
       continue;
     }
-    const body = el("div", { class: "grow" }, el("div", { class: "tm", text: t }), el("div", { class: "lb", text: b.title }));
+    const body = el("div", { class: "grow" }, el("div", { class: "tm", text: b.extra ? `${t} · catch-up` : t }), el("div", { class: "lb", text: b.title }));
     const cc = colorClass(state, b);
     if (b.kind === "lecture") {
       out.push(el("div", { class: `blk lecture ${cc}${b.id === curId ? " cur" : ""}` },
@@ -181,7 +187,7 @@ export function dayView(state, ctx) {
 
 function focusCard(state, ctx) {
   const f = state.focus;
-  const b = state.blocks.find(x => x.id === f.blockId);
+  const b = findBlock(state, f.blockId);
   const nowMs = ctx.now.getTime();
   const left = remainingMs(f, nowMs);
   const paused = f.pausedAt !== null;
@@ -196,6 +202,47 @@ function focusCard(state, ctx) {
       paused ? btn("Resume", "focus-resume", undefined, "btn pri") : btn("Pause", "focus-pause"),
       btn("Finish now", "focus-finish"),
       btn("Stop", "focus-stop", undefined, "btn danger")));
+}
+
+// ---------- catch-up ----------
+
+const shortDate = iso => parseISODate(iso).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+
+function catchUpCard(state, ctx) {
+  const missed = missedBlocks(state, ctx.now);
+  const todayIso = isoDate(ctx.today.date);
+  const upcoming = state.extras.filter(e => e.date >= todayIso);
+  if (!missed.length && !upcoming.length) return null;
+  const n = missed.length;
+  const head = n
+    ? `You missed ${n} study block${n === 1 ? "" : "s"} in the last 7 days.`
+    : `${upcoming.length} make-up block${upcoming.length === 1 ? "" : "s"} coming up.`;
+  const card = [
+    el("div", { class: "row" },
+      el("div", { class: "grow" }, el("h3", {}, "Catch up"), el("div", { class: "sub" }, head)),
+      btn(ctx.catchOpen ? "Hide" : "Show", "cu-toggle")),
+  ];
+  if (ctx.catchOpen) {
+    for (const m of missed.slice(0, 10)) {
+      const slots = suggestSlots(state, ctx.now, m.end - m.start);
+      card.push(el("div", { class: "cu-item" },
+        el("div", { class: "lb", text: m.title }),
+        el("div", { class: "tm", text: `Missed ${shortDate(m.date)} · ${fmtRange(m.start, m.end)}` }),
+        el("div", { class: "row wrap-row mt8" },
+          slots.length
+            ? slots.map(sl => btn(`${shortDate(sl.date)} ${fmtRange(sl.start, sl.end)}`, "cu-add", `${m.key}|${sl.date}|${sl.start}`, "btn cu-slot"))
+            : el("div", { class: "sub" }, `No free ${fmtDuration(m.end - m.start)} slot in the next 7 days.`),
+          btn("Skip", "cu-skip", m.key, "link"))));
+    }
+    if (missed.length > 10) card.push(el("div", { class: "sub mt8" }, `And ${missed.length - 10} more. Catch up on these first.`));
+    if (upcoming.length) {
+      card.push(el("div", { class: "cu-up" }, el("b", {}, "Make-ups coming up"),
+        upcoming.map(e => el("div", { class: "row" },
+          el("div", { class: "grow sub", text: `${shortDate(e.date)} · ${fmtRange(e.start, e.end)} · ${e.title}` }),
+          btn("Remove", "cu-del", e.id, "link")))));
+    }
+  }
+  return el("div", { class: "card cu-card" }, card);
 }
 
 // ---------- Progress ----------

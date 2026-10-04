@@ -2,11 +2,12 @@
 // State changes go through commit(): copy → change → validate + save → render.
 
 import { defaultState, uid, isHHMM, isPlainObject, LIMITS, LEADS, SNOOZES, DAYS, KINDS, PALETTE_SIZE } from "./schema.js";
-import { studyDayOf, weekKey, toHHMM, isoDate, draftToBlock, addRecurring } from "./schedule.js";
+import { studyDayOf, weekKey, toHHMM, isoDate, draftToBlock, addRecurring, findBlock, parseISODate, fmtRange } from "./schedule.js";
 import { arm, isArmed, showAlarm, closeAlarm, currentAlarm, chime } from "./alarm.js";
 import { startFocus, pauseFocus, resumeFocus, isDone, remainingMs, progress, fmtClock } from "./focus.js";
 import { parseTimetable, previewImport, IMPORT_LIMITS } from "./importers.js";
 import { generateWeek, goalFromDraft } from "./generator.js";
+import { missedBlocks, suggestSlots, makeExtra, pruneCatchup } from "./catchup.js";
 import { loadState, saveState, TEMPLATES, loadTemplate, exportBackup, parseImport, needsBackup, isPersisted, requestPersist, KEY } from "./storage.js";
 import { buildICS } from "./ics.js";
 import { tabsBar, dayView, progressView, planView, projectsView, settingsView, wizardView, bannersView, toastNode } from "./ui.js";
@@ -17,7 +18,7 @@ import {
 
 // Shown in Settings so you can tell which upgrade is live. Bump with each
 // release together with VERSION in sw.js (see CHANGELOG.md).
-const APP_VERSION = "1.5.0 · Stage 2, step 5 of 7";
+const APP_VERSION = "1.6.0 · Stage 2, step 6 of 7";
 
 const $ = id => document.getElementById(id);
 const app = $("app");
@@ -32,6 +33,7 @@ let imp = null;       // Plan tab timetable import, see importPanel() in ui.js
 let goalEd = null;    // Plan tab goal form: { id, isNew, draft, errors }
 let genOpen = false;  // Plan tab: generator review showing
 let afterImport = false; // Plan tab: nudge to fill study time after an import
+let catchOpen = false;   // Day tab: catch-up list expanded
 let wiz = null;       // setup wizard, see newWizard()
 let deferredInstall = null;
 let waitingWorker = null;   // a new version that is installed and waiting
@@ -52,6 +54,7 @@ function commit(change) {
 }
 
 function start(newState, notes = []) {
+  if (!newState.settings.startedAt) newState.settings.startedAt = Date.now();
   const saved = saveState(newState);
   if (!saved) { toast(["Could not save. Your phone's storage may be full."]); return; }
   state = saved;
@@ -77,6 +80,7 @@ function context() {
     goalEd,
     afterImport,
     gen: genOpen ? generateWeek(state) : null, // always from the current timetable
+    catchOpen,
     perm: permission(),
     installed: (globalThis.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true,
     canInstall: !!deferredInstall,
@@ -111,7 +115,7 @@ function render() {
   applyTheme();
   if (!state && !wiz) wiz = newWizard();
   const f = state && state.focus;
-  const fb = f && state.blocks.find(b => b.id === f.blockId);
+  const fb = f && findBlock(state, f.blockId);
   const banners = bannersView({
     update: !!waitingWorker,
     focus: !wiz && f && fb && tab !== "day" ? { time: fmtClock(remainingMs(f, Date.now())), title: fb.title, paused: f.pausedAt !== null } : null,
@@ -268,9 +272,10 @@ const clicks = {
   "day": k => { selDay = k; render(); },
   "goto-plan": k => { tab = "plan"; planDay = k; render(); },
   "toggle": k => {
-    const b = state.blocks.find(x => x.id === k);
-    if (!b || b.kind !== "study") return;
-    const wk = weekKey(studyDayOf(new Date(), state.profile.bedtime).date);
+    const extra = state.extras.find(x => x.id === k);
+    const b = extra || state.blocks.find(x => x.id === k);
+    if (!b || (!extra && b.kind !== "study")) return;
+    const wk = extra ? weekKey(parseISODate(extra.date)) : weekKey(studyDayOf(new Date(), state.profile.bedtime).date);
     commit(s => {
       const w = s.progress[wk] || (s.progress[wk] = {});
       if (w[k]) delete w[k]; else w[k] = true;
@@ -304,10 +309,32 @@ const clicks = {
     commit(s => { s.blocks = s.blocks.filter(x => x.id !== k); });
   },
 
+  // Catch-up (Day tab)
+  "cu-toggle": () => { catchOpen = !catchOpen; render(); },
+  "cu-add": k => {
+    const [mk, date, start] = String(k).split("|");
+    const now = new Date();
+    const m = missedBlocks(state, now).find(x => x.key === mk);
+    const slot = m && suggestSlots(state, now, m.end - m.start, 7).find(s => s.date === date && s.start === +start);
+    if (!m || !slot) { toast(["That slot isn't free any more. Pick another one."]); render(); return; }
+    if (state.extras.length >= LIMITS.extras) { toast([`You can have up to ${LIMITS.extras} make-up blocks. Remove some first.`]); return; }
+    if (commit(s => { s.extras.push(makeExtra(m, slot)); })) {
+      toast([`Make-up added: ${parseISODate(slot.date).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}, ${fmtRange(slot.start, slot.end)}.`]);
+    }
+  },
+  "cu-skip": k => {
+    if (!/^\d{4}-\d{2}-\d{2}@[A-Za-z0-9_-]{1,40}$/.test(k)) return;
+    commit(s => { if (!s.dismissed.includes(k)) s.dismissed.push(k); });
+  },
+  "cu-del": k => {
+    const e = state.extras.find(x => x.id === k);
+    if (e && confirm(`Remove the make-up "${e.title}"?`)) commit(s => { s.extras = s.extras.filter(x => x.id !== k); });
+  },
+
   // Focus timer
   "focus-start": k => {
-    const b = state.blocks.find(x => x.id === k);
-    if (!b || b.kind !== "study" || state.focus) return;
+    const b = findBlock(state, k);
+    if (!b || (b.kind && b.kind !== "study") || state.focus) return;
     const sd = studyDayOf(new Date(), state.profile.bedtime);
     const f = startFocus(b, isoDate(sd.date), sd.minute, Date.now());
     arm(); // this tap also unlocks the finishing chime
@@ -580,7 +607,7 @@ function importFile(n) {
 function finishFocus(timeUp, whileAway = false) {
   const f = state && state.focus;
   if (!f) return;
-  const b = state.blocks.find(x => x.id === f.blockId);
+  const b = findBlock(state, f.blockId);
   const [y, m, d] = f.date.split("-").map(Number);
   const wk = weekKey(new Date(y, m - 1, d, 12));
   if (!commit(s => { s.focus = null; (s.progress[wk] || (s.progress[wk] = {}))[f.blockId] = true; })) return;
@@ -747,6 +774,12 @@ function readAlarmHash() {
   if (m) alarmAction(m[1], m[2]);
 }
 if (state && state.focus && isDone(state.focus, Date.now())) finishFocus(false, true);
+if (state) {
+  const p = pruneCatchup(state, new Date());
+  if (p.extras.length !== state.extras.length || p.dismissed.length !== state.dismissed.length) {
+    commit(s => { s.extras = p.extras; s.dismissed = p.dismissed; });
+  }
+}
 readAlarmHash();
 window.addEventListener("hashchange", readAlarmHash);
 tickAlarms();

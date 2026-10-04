@@ -12,8 +12,8 @@ The version is shown at the bottom of **Settings** in the app.
 | 3 | Timetable import: quick-add text, CSV, .ics, with a review screen | ✅ done (1.3.0) |
 | 4 | Week generator from saved study goals | ✅ done (1.4.0) |
 | 5 | Focus timer | ✅ done (1.5.0) |
-| 6 | Catch-up list + one-off make-up blocks | ⏳ next |
-| 7 | Share a template by link | ⬜ |
+| 6 | Catch-up list + one-off make-up blocks | ✅ done (1.6.0) |
+| 7 | Share a template by link | ⏳ next |
 
 ## Stage 1 progress
 
@@ -30,6 +30,24 @@ The version is shown at the bottom of **Settings** in the app.
 | 9 | README, SECURITY.md, final hardening pass | ✅ done |
 
 **Stage 1 is code-complete.** What's left is checking it on a real phone: build a week, use it offline, restart the phone, and let an alarm ring.
+
+## 1.6.0: Stage 2, step 6
+
+**Catch up on missed blocks.**
+
+- **Catch up card** on the Day tab: *"You missed 3 study blocks in the last 7 days."* Tap **Show** to see each one, e.g. *Missed Mon, Oct 5 · 10:00am–12:00pm*.
+- **Up to 3 suggested slots for each:** the earliest free time that fits on the next days. They use the same rules as the week generator: within your waking hours, clear of lectures (30 minutes either side), and keeping 7 h of sleep. They never clash with anything, other make-ups included.
+- **One tap adds a make-up block** on that date, e.g. *"CSC 415 · catch-up"*:
+  - It shows on that day only, marked "catch-up".
+  - It can be ticked, and counts toward that week's progress and streak.
+  - It rings an alarm and works with the focus timer.
+- **Skip** removes a miss from the list without rescheduling it. Remove a make-up and the original miss comes back.
+- **What counts as missed:**
+  - Ticked blocks, ones already rescheduled, and anything from before you set up the app don't count.
+  - Lectures and rest never count.
+  - Today's blocks only count once they've ended.
+- **Tidying:** unticked make-ups older than 60 days and skips older than 14 days are cleaned up automatically.
+- **Tests:** 139 automated tests.
 
 ## 1.5.0: Stage 2, step 5
 

@@ -13,6 +13,7 @@ A study timetable you build yourself: tick off study blocks, keep a streak and g
 - **Week generator** (Plan → Study goals): say how many hours a week you want per subject, e.g. *CSC 415, 6 h, 1–2 h sessions*, and it fills your free time. It works around lectures (with a 30-minute buffer), naps and your own blocks, keeps 7 h of sleep and respects a daily study limit. You review the result before it is applied, with a list of anything that did not fit. Blocks you place yourself are never moved.
 - **Day tab:** what's on right now and what's next. Tap a study block to tick it off. Lectures show greyed (fixed, not ticked). Naps and wind-down are rest blocks.
 - **Focus timer:** tap *Start focus* on the current study block (or start the next one early). A big countdown shows on the Day tab, with Pause, Resume, Finish now and Stop. It keeps the screen on where the browser allows and stays accurate even if the phone sleeps or the app is closed: when time is up, the block is ticked.
+- **Catch up** (Day tab): see study blocks you missed in the last 7 days, each with up to 3 free slots in the coming week. One tap adds a one-off make-up block on that date: it can be ticked, counts toward that week and rings an alarm. Or tap Skip.
 - **Progress:** completion by day, hours studied vs planned per course, streak, the previous 4 weeks, and counters (e.g. "modules finished").
 - **Projects:** a log of things you've built.
 - **Alarms:** a full-screen alarm when a block starts, with Snooze 5 / Snooze 10 / Dismiss. It repeats every 30 s until you act. *See the limits below.*
@@ -70,6 +71,7 @@ js/ics.js             calendar export
 js/importers.js       timetable import: quick-add text, CSV, .ics (+ review preview)
 js/generator.js       week generator: study goals → sessions in your free time
 js/focus.js           focus timer maths (timestamps, pause/resume)
+js/catchup.js         missed blocks, free-slot suggestions, make-up blocks
 templates/*.json      built-in timetables (validated like any import)
 tests/*.test.js       node:test, no dependencies
 ```
@@ -104,7 +106,9 @@ They cover:
   counters:   [{ id, name, count }],
   goals:      [{ id, title, cat, hoursPerWeek, sessionMin, sessionMax }],   // week generator
   focus:      { blockId, date, startedAt, pausedAt, pausedMs, durationMin } | null,  // running focus timer
-  settings:   { remind, alarms, lead, snooze, lastBackup, theme, maxStudyPerDay, threeTouches } }
+  extras:     [{ id, date: "2026-10-08", start, end, title, cat, from, fromDate }],  // one-off make-up blocks
+  dismissed:  ["2026-10-05@blockId"],   // missed blocks the user skipped
+  settings:   { remind, alarms, lead, snooze, lastBackup, theme, maxStudyPerDay, threeTouches, startedAt } }
 ```
 
 Times are minutes from midnight of the study day, from 0 to 1800 (30 hours), so 1:30am is 1530.

@@ -22,6 +22,8 @@ export const LIMITS = {
   projects: 200,
   counters: 20,
   goals: 30,
+  extras: 100,
+  dismissed: 200,
   weeks: 60,          // weeks of progress kept
   count: 100000,
   maxTime: 1800,      // 30 h study day, in minutes
@@ -34,6 +36,7 @@ const BAD_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 const ID_RE = /^[A-Za-z0-9_-]+$/;
 const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const WEEK_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DISMISS_RE = /^\d{4}-\d{2}-\d{2}@[A-Za-z0-9_-]{1,40}$/;
 // C0 controls except \n, DEL, C1 controls, and the Unicode line/paragraph separators
 const CTRL_RE = /[\x00-\x09\x0B-\x1F\x7F-\x9F\u{2028}\u{2029}]/gu;
 
@@ -56,7 +59,9 @@ export function defaultState() {
     counters: [],
     goals: [],
     focus: null,  // running focus timer, see focus.js
-    settings: { remind: false, alarms: true, lead: 10, snooze: 10, lastBackup: 0, theme: "auto", maxStudyPerDay: 600, threeTouches: false },
+    extras: [],   // one-off make-up blocks on a date, see catchup.js
+    dismissed: [], // missed blocks the user chose to skip: "YYYY-MM-DD@blockId"
+    settings: { remind: false, alarms: true, lead: 10, snooze: 10, lastBackup: 0, theme: "auto", maxStudyPerDay: 600, threeTouches: false, startedAt: 0 },
   };
 }
 
@@ -167,8 +172,38 @@ export function validate(raw) {
     out.blocks.push(block);
   }
 
-  // progress: only weeks with valid keys, only ticks for study blocks that exist
-  const studyIds = new Set(out.blocks.filter(b => b.kind === "study").map(b => b.id));
+  // extras: one-off make-up study blocks on a specific date (newest 100 kept)
+  const extraIds = new Set();
+  const extras = [];
+  for (const e of arr(raw.extras, "extras", note)) {
+    if (!isPlainObject(e) || !isId(e.id) || extraIds.has(e.id) || blockIds.has(e.id)) { note("A make-up block had a bad or duplicate id and was dropped."); continue; }
+    if (!isWeekKey(e.date) || !isInt(e.start, 0, LIMITS.maxTime) || !isInt(e.end, 0, LIMITS.maxTime) || e.end <= e.start) {
+      note("A make-up block had an invalid date or time and was dropped."); continue;
+    }
+    const etitle = cleanText(e.title, LIMITS.title);
+    if (!etitle) { note("A make-up block had no title and was dropped."); continue; }
+    extraIds.add(e.id);
+    extras.push({
+      id: e.id, date: e.date, start: e.start, end: e.end, title: etitle,
+      cat: isId(e.cat) && catIds.has(e.cat) ? e.cat : null,
+      from: isId(e.from) ? e.from : null,
+      fromDate: isWeekKey(e.fromDate) ? e.fromDate : null,
+    });
+  }
+  if (extras.length > LIMITS.extras) note("Too many make-up blocks; the oldest were dropped.");
+  out.extras = extras.sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start).slice(-LIMITS.extras);
+
+  // dismissed misses: "YYYY-MM-DD@id"
+  if (Array.isArray(raw.dismissed)) {
+    const seen = new Set();
+    for (const k of raw.dismissed) {
+      if (typeof k === "string" && DISMISS_RE.test(k) && isWeekKey(k.slice(0, 10)) && !seen.has(k)) seen.add(k);
+    }
+    out.dismissed = [...seen].sort().slice(-LIMITS.dismissed);
+  }
+
+  // progress: only weeks with valid keys, only ticks for study blocks (and make-ups) that exist
+  const studyIds = new Set([...out.blocks.filter(b => b.kind === "study").map(b => b.id), ...out.extras.map(e => e.id)]);
   if (raw.progress !== undefined && !isPlainObject(raw.progress)) note("progress was invalid and was reset.");
   const prog = isPlainObject(raw.progress) ? raw.progress : {};
   const weeks = Object.keys(prog).filter(isWeekKey).sort().slice(-LIMITS.weeks);
@@ -240,6 +275,7 @@ export function validate(raw) {
   if (typeof s.alarms === "boolean") out.settings.alarms = s.alarms;
   if (isInt(s.maxStudyPerDay, 60, 960) && s.maxStudyPerDay % 30 === 0) out.settings.maxStudyPerDay = s.maxStudyPerDay;
   if (typeof s.threeTouches === "boolean") out.settings.threeTouches = s.threeTouches;
+  if (isInt(s.startedAt, 0, MAX_MS)) out.settings.startedAt = s.startedAt;
 
   return { ok: true, data: out, errors };
 }

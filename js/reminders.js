@@ -4,7 +4,7 @@
 // Both only run while the app is open or recently used; see README.
 
 import { isPlainObject, hasBadKeys, isId, cleanText, KINDS, LIMITS } from "./schema.js";
-import { studyDayOf, weekKey, blocksForDay, fmtRange, isoDate, addDays } from "./schedule.js";
+import { studyDayOf, weekKey, blocksForDay, extrasOn, fmtRange, isoDate, addDays } from "./schedule.js";
 
 const NOTIFIED_KEY = "stick_notified_v1";
 const ALARM_KEY = "stick_alarms_v1";
@@ -55,7 +55,7 @@ export function dueAlarms(state, now, store) {
       else next.snoozes.push(s);
     }
     const ticks = state.progress[weekKey(sd.date)] || {};
-    for (const b of blocksForDay(state.blocks, sd.day)) {
+    for (const b of [...blocksForDay(state.blocks, sd.day), ...extrasOn(state, dk)]) {
       if (b.kind === "rest" || sd.minute < b.start || sd.minute >= b.start + GRACE_MIN) continue;
       const key = `${dk}@${b.id}`;
       if (next.fired[key]) continue;
@@ -144,7 +144,7 @@ export function checkReminders(state, now = new Date()) {
   const dk = isoDate(sd.date), ticks = state.progress[weekKey(sd.date)] || {}, lead = state.settings.lead;
   const notified = loadNotified();
 
-  for (const b of blocksForDay(state.blocks, sd.day)) {
+  for (const b of [...blocksForDay(state.blocks, sd.day), ...extrasOn(state, dk)]) {
     if (b.kind === "rest") continue;
     const diff = b.start - sd.minute, key = `${dk}@${b.id}`;
     if (diff <= lead && diff > -5 && !notified[key]) {

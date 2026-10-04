@@ -169,11 +169,29 @@ export function currentAndNext(dayBlocks, minute) {
 // ---------- stats ----------
 // `mins` is keyed by category id; uncategorised study time goes under "".
 
+// "2026-10-05" → Date at local noon
+export function parseISODate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d, 12);
+}
+
+// The calendar date of a weekday in a week: ("2026-09-28", "WED") → "2026-09-30"
+export const dateFor = (wk, day) => isoDate(addDays(parseISODate(wk), DAYS.indexOf(day)));
+
+// One-off make-up blocks on a date, shaped like blocks (kind study, day set).
+export function extrasOn(state, iso) {
+  const day = dayKey(parseISODate(iso));
+  return (state.extras || []).filter(e => e.date === iso).map(e => ({ ...e, day, kind: "study", extra: true }));
+}
+
+// A weekly block or a make-up, by id.
+export const findBlock = (state, id) => state.blocks.find(b => b.id === id) || (state.extras || []).find(e => e.id === id) || null;
+
 export function dayStats(state, wk, day) {
   const ticks = state.progress[wk] || {};
   let tot = 0, done = 0;
   const mins = {};
-  for (const b of state.blocks) {
+  for (const b of [...state.blocks, ...extrasOn(state, dateFor(wk, day))]) {
     if (b.day !== day || !isTickable(b)) continue;
     tot++;
     if (ticks[b.id]) {

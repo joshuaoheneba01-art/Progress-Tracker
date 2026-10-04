@@ -6,14 +6,14 @@
 // - Other apps on the same github.io origin are left alone: we only ever
 //   delete caches whose names start with "stick-".
 
-const VERSION = "1.5.0";
+const VERSION = "1.6.0";
 const PREFIX = "stick-";
 const CACHE = PREFIX + VERSION;
 
 const ASSETS = [
   "./", "./index.html", "./manifest.webmanifest", "./css/app.css",
   "./js/main.js", "./js/schema.js", "./js/schedule.js", "./js/storage.js",
-  "./js/ui.js", "./js/ics.js", "./js/reminders.js", "./js/alarm.js", "./js/importers.js", "./js/generator.js", "./js/focus.js",
+  "./js/ui.js", "./js/ics.js", "./js/reminders.js", "./js/alarm.js", "./js/importers.js", "./js/generator.js", "./js/focus.js", "./js/catchup.js",
   "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-512-maskable.png",
   "./templates/student.json", "./templates/night-owl.json", "./templates/early-bird.json", "./templates/mcjayy.json",
 ];
