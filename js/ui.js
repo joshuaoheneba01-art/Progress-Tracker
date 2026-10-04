@@ -5,9 +5,10 @@
 
 import { DAYS, KINDS, PALETTE_SIZE, LIMITS } from "./schema.js";
 import { TEMPLATES } from "./storage.js";
+import { previewImport } from "./importers.js";
 import {
   fmtRange, fmtHours, dur, blocksForDay, currentAndNext, dayStats, weekStats,
-  planned, sum, streak, weekStart, addDays, isoDate, findOverlaps, sleepReport, fmtDuration,
+  planned, sum, streak, weekStart, addDays, isoDate, findOverlaps, sleepReport, fmtDuration, inputToRange,
 } from "./schedule.js";
 
 const DAY_NAMES = { MON: "Monday", TUE: "Tuesday", WED: "Wednesday", THU: "Thursday", FRI: "Friday", SAT: "Saturday", SUN: "Sunday" };
@@ -365,6 +366,12 @@ export function planView(state, ctx) {
       el("div", { class: "n" }, d), el("div", { class: "p" }, String(n)));
   })));
 
+  if (ctx.imp) out.push(...importPanel(state, ctx.imp));
+  else out.push(el("div", { class: "card" },
+    el("h3", {}, "Import class timetable"),
+    el("div", { class: "sub mb8" }, "Paste lines like \"Mon 9:30-11:30 CSC 415\", or choose a CSV or calendar (.ics) file. You'll review everything before it's added."),
+    btn("Import timetable", "imp-open", undefined, "btn")));
+
   if (ctx.editing) out.push(blockForm(state, ctx.editing));
 
   const blocks = blocksForDay(state.blocks, day);
@@ -384,6 +391,58 @@ export function planView(state, ctx) {
 
   out.push(sleepCard(sleep));
   out.push(categoriesCard(state));
+  return out;
+}
+
+// ---------- timetable import ----------
+// imp: { phase: "input" | "review", impText, filename, parsed: { format, rows, errors, notes }, choices: [{ on, kind }] }
+
+const FORMAT_NAME = { text: "text", csv: "CSV file", ics: "calendar file" };
+
+function importPanel(state, imp) {
+  if (imp.phase === "input") {
+    return [el("div", { class: "card form" },
+      el("h3", {}, "Import class timetable"),
+      el("div", { class: "sub mb8" }, "One class per line: day(s), time, course. Add [study], [nap] or [rest] at the end to change the type; everything else comes in as a lecture."),
+      el("textarea", {
+        class: "imp-text", maxlength: 20000, spellcheck: "false", "aria-label": "Timetable text",
+        placeholder: "Mon 9:30-11:30 CSC 415\nTue/Thu 2pm-4pm CSC 401 Lab\nWed 14:00-16:00 Stats",
+        value: imp.impText, data: { f: "impText" },
+      }),
+      el("div", { class: "row wrap-row" },
+        btn("Preview", "imp-preview", undefined, "btn pri"),
+        el("label", { class: "btn" }, "Choose CSV or .ics file",
+          el("input", { type: "file", class: "hidden", accept: ".csv,.ics,.txt,text/csv,text/calendar,text/plain", data: { a: "imp-file" } })),
+        btn("Cancel", "imp-cancel")),
+      el("div", { class: "sub mt8" }, "Read on this phone only. Nothing is uploaded."))];
+  }
+
+  const { parsed } = imp;
+  const p = previewImport(state, parsed.rows, imp.choices);
+  const clashes = p.items.filter(i => i.status === "error").length;
+  const out = [el("div", { class: "card form" },
+    el("h3", {}, `Review: ${parsed.rows.length} class${parsed.rows.length === 1 ? "" : "es"} found`),
+    el("div", { class: "sub mb8", text: `From ${imp.filename ? `"${imp.filename}"` : "your text"} (${FORMAT_NAME[parsed.format]}). ${p.added} will be added${clashes ? `, ${clashes} clash${clashes === 1 ? "es" : ""} with your timetable and will be skipped` : ""}. Untick anything you don't want.` }),
+    parsed.errors.length > 0 && el("div", { class: "banner warn" },
+      el("b", {}, `${parsed.errors.length} line${parsed.errors.length === 1 ? "" : "s"} couldn't be read:`),
+      el("ul", { class: "errs" }, parsed.errors.map(e => el("li", { text: e.line ? `Line ${e.line}: ${e.message}` : e.message })))),
+    parsed.notes.length > 0 && el("div", { class: "sub mb8", text: parsed.notes.join(" ") }),
+    p.items.map((it, i) => {
+      const r = inputToRange(it.start, it.end, state.profile.bedtime);
+      return el("div", { class: `imp-row${it.on ? "" : " off"}${it.status === "error" ? " bad" : ""}` },
+        el("button", { type: "button", class: "imp-check", role: "checkbox", "aria-checked": String(it.on), "aria-label": `Include ${it.title} on ${it.day}`, data: { a: "imp-toggle", k: i } }, it.on ? "✓" : ""),
+        el("div", { class: "grow" },
+          el("div", { class: "tm", text: `${it.day} ${fmtRange(r.start, r.end)}` }),
+          el("div", { class: "lb", text: it.title }),
+          it.status === "error" && el("div", { class: "imp-err", text: it.error })),
+        el("select", { class: "btn imp-kind", "aria-label": "Type", data: { a: "imp-kind", k: i } },
+          KINDS.map(k => el("option", { value: k, selected: it.kind === k }, KIND_LABEL[k]))));
+    }),
+    !parsed.rows.length && el("div", { class: "sub" }, "Nothing to add. Go back and check the format."),
+    el("div", { class: "row wrap-row mt8" },
+      btn(p.added ? `Add ${p.added} class${p.added === 1 ? "" : "es"}` : "Nothing to add", "imp-apply", undefined, "btn pri"),
+      btn("Back", "imp-back"),
+      btn("Cancel", "imp-cancel")))];
   return out;
 }
 

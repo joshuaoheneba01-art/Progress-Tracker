@@ -9,8 +9,8 @@ The version is shown at the bottom of **Settings** in the app.
 |---|---|---|
 | 1 | Sleep guard | ✅ done (1.1.0) |
 | 2 | Templates: Student, Night owl, Early bird, McJayy's week | ✅ done (1.2.0) |
-| 3 | Timetable import: quick-add text, CSV, .ics, with a review screen | ⏳ next |
-| 4 | Week generator from saved study goals | ⬜ |
+| 3 | Timetable import: quick-add text, CSV, .ics, with a review screen | ✅ done (1.3.0) |
+| 4 | Week generator from saved study goals | ⏳ next |
 | 5 | Focus timer | ⬜ |
 | 6 | Catch-up list + one-off make-up blocks | ⬜ |
 | 7 | Share a template by link | ⬜ |
@@ -30,6 +30,25 @@ The version is shown at the bottom of **Settings** in the app.
 | 9 | README, SECURITY.md, final hardening pass | ✅ done |
 
 **Stage 1 is code-complete.** What's left is checking it on a real phone: build a week, use it offline, restart the phone, and let an alarm ring.
+
+## 1.3.0: Stage 2, step 3
+
+**Import your class timetable.** Plan → *Import timetable*.
+
+- **Paste lines** like `Mon 9:30-11:30 CSC 415`. Also accepted:
+  - several days: `Tue/Thu`, `Mon-Fri`, `weekdays`
+  - 12-hour times: `2pm-4pm`, `2-4pm`, `11-1pm`
+  - a type at the end: `[study]`, `[nap]` or `[rest]`. Anything else comes in as a lecture.
+- **Or choose a file:**
+  - **CSV:** with or without a header row, comma, semicolon or tab separated.
+  - **Calendar (.ics):** weekly repeats are read, and when a class is listed separately for every week, the copies are merged. All-day events are skipped. Times with a timezone tag are read as your phone's local time.
+- **Review before anything is added:**
+  - Every class is listed. You can untick it or change its type (lecture, study, nap, rest).
+  - Clashes with your timetable are shown, e.g. *Overlaps "Course 1 · lecture" (MON 9:00–11:00am)*, and those classes are skipped.
+  - Unreadable lines are listed with their line number, e.g. *Line 3: "funday" isn't a day*.
+- **Courses become subjects automatically.** An existing subject is reused, even if you typed it in different capitals.
+- **Private and safe:** files are read on your phone only and nothing is uploaded. Size limits apply, and hostile text, CSV and calendar files are tested.
+- **Tests:** 109 automated tests.
 
 ## 1.2.0: Stage 2, step 2
 

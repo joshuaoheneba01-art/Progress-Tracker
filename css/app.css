@@ -183,3 +183,13 @@ body.alarm-open{ overflow:hidden; }
 .tpl{ display:block; width:100%; min-height:56px; text-align:left; font:inherit; color:var(--text); background:var(--soft); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px; cursor:pointer; }
 .tpl b{ display:block; }
 .tpl .sub{ display:block; margin-top:2px; }
+
+/* Stage 2 step 3: timetable import */
+.imp-text{ min-height:150px; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:14px; }
+.imp-row{ display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--line); }
+.imp-row.off{ opacity:.5; }
+.imp-row.bad .lb{ text-decoration:line-through; }
+.imp-check{ width:44px; height:44px; flex:0 0 44px; border-radius:10px; border:2px solid var(--accent); background:var(--card); color:var(--accent); font-size:20px; font-weight:800; cursor:pointer; }
+.imp-row.off .imp-check{ border-color:var(--line); }
+.imp-err{ color:var(--danger); font-size:12.5px; overflow-wrap:anywhere; }
+.imp-kind{ flex:0 0 auto; max-width:40%; }

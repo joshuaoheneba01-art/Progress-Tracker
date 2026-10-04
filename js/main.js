@@ -1,9 +1,10 @@
 // Boot, state, routing and event delegation.
 // State changes go through commit(): copy → change → validate + save → render.
 
-import { defaultState, uid, isHHMM, isPlainObject, LIMITS, LEADS, SNOOZES, DAYS, PALETTE_SIZE } from "./schema.js";
+import { defaultState, uid, isHHMM, isPlainObject, LIMITS, LEADS, SNOOZES, DAYS, KINDS, PALETTE_SIZE } from "./schema.js";
 import { studyDayOf, weekKey, toHHMM, isoDate, draftToBlock, addRecurring } from "./schedule.js";
 import { arm, isArmed, showAlarm, closeAlarm, currentAlarm } from "./alarm.js";
+import { parseTimetable, previewImport, IMPORT_LIMITS } from "./importers.js";
 import { loadState, saveState, TEMPLATES, loadTemplate, exportBackup, parseImport, needsBackup, isPersisted, requestPersist, KEY } from "./storage.js";
 import { buildICS } from "./ics.js";
 import { tabsBar, dayView, progressView, planView, projectsView, settingsView, wizardView, bannersView, toastNode } from "./ui.js";
@@ -14,7 +15,7 @@ import {
 
 // Shown in Settings so you can tell which upgrade is live. Bump with each
 // release together with VERSION in sw.js (see CHANGELOG.md).
-const APP_VERSION = "1.2.0 · Stage 2, step 2 of 7";
+const APP_VERSION = "1.3.0 · Stage 2, step 3 of 7";
 
 const $ = id => document.getElementById(id);
 const app = $("app");
@@ -25,6 +26,7 @@ let tab = "day";
 let selDay = null;    // Day tab: null = follow today
 let planDay = null;   // Plan tab: null = follow today
 let editing = null;   // Plan tab form: { id, isNew, copy, draft, errors }
+let imp = null;       // Plan tab timetable import, see importPanel() in ui.js
 let wiz = null;       // setup wizard, see newWizard()
 let deferredInstall = null;
 let waitingWorker = null;   // a new version that is installed and waiting
@@ -66,6 +68,7 @@ function context() {
     selDay: selDay || today.day,
     planDay: planDay || today.day,
     editing,
+    imp,
     perm: permission(),
     installed: (globalThis.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true,
     canInstall: !!deferredInstall,
@@ -219,7 +222,30 @@ const wizClicks = {
 // ---------- actions ----------
 
 const clicks = {
-  "tab": k => { tab = k; editing = null; render(); },
+  "tab": k => { tab = k; editing = null; imp = null; render(); },
+
+  // Plan: timetable import (nothing is saved until imp-apply)
+  "imp-open": () => { imp = { phase: "input", impText: "", filename: "", parsed: null, choices: [] }; editing = null; render(); focusForm(); },
+  "imp-cancel": () => { imp = null; render(); },
+  "imp-back": () => { imp.phase = "input"; render(); focusForm(); },
+  "imp-preview": () => {
+    if (!imp.impText.trim()) { toast(["Type or paste your classes first, one per line."]); return; }
+    showImportReview(parseTimetable(imp.impText), "");
+  },
+  "imp-toggle": k => {
+    const i = +k;
+    if (!imp || !Number.isInteger(i) || i < 0 || i >= imp.parsed.rows.length) return;
+    imp.choices[i] = { ...imp.choices[i], on: imp.choices[i]?.on === false };
+    render();
+  },
+  "imp-apply": () => {
+    const p = previewImport(state, imp.parsed.rows, imp.choices);
+    if (!p.added) { toast(["Nothing to add. Tick some classes or go back."]); return; }
+    imp = null;
+    if (commit(s => { s.blocks = p.state.blocks; s.categories = p.state.categories; })) {
+      toast([`Added ${p.added} class${p.added === 1 ? "" : "es"} to your timetable.`]);
+    }
+  },
   "day": k => { selDay = k; render(); },
   "goto-plan": k => { tab = "plan"; planDay = k; render(); },
   "toggle": k => {
@@ -398,6 +424,7 @@ function syncField(n) {
   const f = n.dataset.f;
   if (wiz && f in wiz.form) wiz.form[f] = n.value;
   else if (editing && f in editing.draft) editing.draft[f] = n.value;
+  else if (imp && f === "impText") imp.impText = n.value;
 }
 document.addEventListener("input", ev => { if (ev.target.dataset && ev.target.dataset.f) syncField(ev.target); });
 
@@ -413,6 +440,15 @@ document.addEventListener("change", ev => {
   const a = n.dataset.a, k = n.dataset.k;
 
   if (a === "import" && n.files && n.files[0]) { importFile(n); return; }
+  if (a === "imp-file" && n.files && n.files[0]) { importTimetableFile(n); return; }
+  if (a === "imp-kind" && imp) {
+    const i = +k;
+    if (Number.isInteger(i) && i >= 0 && i < imp.parsed.rows.length && KINDS.includes(n.value)) {
+      imp.choices[i] = { ...imp.choices[i], kind: n.value };
+      render();
+    }
+    return;
+  }
   if (!state) return;
   if (a === "lead") {
     const v = +n.value;
@@ -431,6 +467,22 @@ document.addEventListener("change", ev => {
     if (name) commit(s => { const c = s.categories.find(x => x.id === k); if (c) c.name = name; }); else render();
   }
 });
+
+function showImportReview(parsed, filename) {
+  imp = { ...imp, phase: "review", filename, parsed, choices: [] };
+  render();
+  focusForm();
+}
+
+function importTimetableFile(n) {
+  const file = n.files[0];
+  n.value = "";
+  if (file.size > IMPORT_LIMITS.bytes) { toast(["That file is too big for a timetable (max 256 KB)."]); return; }
+  file.text().then(
+    text => showImportReview(parseTimetable(text, file.name), file.name.slice(0, 80)),
+    () => toast(["That file could not be read."]),
+  );
+}
 
 function importFile(n) {
   const file = n.files[0];

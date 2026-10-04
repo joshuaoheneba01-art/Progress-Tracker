@@ -21,6 +21,7 @@ Everything below is treated as hostile input and validated before use:
 
 - **Stored data** in `localStorage`. It may be old, corrupted, edited by hand, or written by another app on the same origin (see *Known limits*).
 - **Backup files** the user imports.
+- **Timetable imports:** pasted text, CSV files and `.ics` calendar files.
 - **The URL fragment** (`#alarm=…`, opened from notification actions).
 - **Messages** arriving from the service worker.
 - **Share links** (Stage 2): they will go through the same validator, with a preview and a confirm step, and are never applied automatically.
@@ -34,6 +35,7 @@ Everything below is treated as hostile input and validated before use:
 | **Hostile or corrupted data** (stored, imported or linked) | `validate()` in `js/schema.js` rebuilds a fresh object from an allow-list. It never copies input wholesale, drops unknown keys, and checks types, enum values, times (0–1800, end after start), `HH:MM` formats and id formats. It caps sizes: titles 60 characters, 300 blocks, 30 subjects, 200 projects, 60 weeks of history, 8 levels of nesting. Imports over 256 KB are rejected before reading. Unreadable saved data is set aside (`stick_v1_broken`), never silently overwritten. |
 | **Prototype pollution** (`__proto__`, `constructor`, `prototype` keys) | Any such key at any depth rejects the whole input. Tests feed real `JSON.parse` payloads and confirm `Object.prototype` stays clean. |
 | **Denial of service by huge input** | Size caps above. Strings are trimmed to the limit cheaply before any further processing. |
+| **Hostile timetable imports** (pasted text, CSV, `.ics`) | Parsed on the device by our own code in `js/importers.js`, never uploaded. Limits: 256 KB, 5,000 lines, 2,000 characters per line, 20 CSV fields, 3,000 calendar events and 300 classes. Words from the file are looked up in `Map`s, so names like `constructor` or `__proto__` are just unknown words. Calendar alarms nested inside events can't overwrite the event. Every row goes through the same rules as the editor (times, overlaps, title cleaning), and the user reviews the exact result before anything is saved. Tests feed hostile text, CSV and `.ics` files. |
 | **Calendar (.ics) injection** (a title containing a line break plus `END:VEVENT`) | Every text field has CR/LF and control characters stripped and `\ ; ,` escaped. Lines are folded at 75 bytes without splitting a character. Event UIDs are generated in code from a hash of the block id, never from user text. Tested with hostile titles. |
 | **Service-worker cache poisoning or stale code** | The service worker handles only same-origin `GET` requests inside the app's own scope. It caches only complete `200` responses of type `basic` (never opaque or error responses). The precache uses `cache: "reload"` to bypass stale HTTP caches. |
 | **Silent code swaps** | A new version installs in the background and waits. The page only switches when the user taps *Update ready*, so code never changes mid-use. |

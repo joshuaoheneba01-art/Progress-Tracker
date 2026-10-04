@@ -9,6 +9,7 @@ A study timetable you build yourself: tick off study blocks, keep a streak and g
 - **Build your week** with a 2-minute setup (wake time, bedtime, naps, lectures, study sessions), or start from a template: Student, Night owl, Early bird or "McJayy's week".
 - **Plan tab:** add, edit, copy and delete blocks. It catches overlaps and impossible times. Courses get their own colours.
 - **Sleep guard:** warns when a night has under 7 h of sleep (naps count) and names the block cutting into it.
+- **Import your class timetable** (Plan tab): paste lines like `Mon 9:30-11:30 CSC 415`, or choose a CSV or calendar (.ics) file. You review every class, with clashes and unreadable lines flagged, before anything is added. It is all read on your phone; nothing is uploaded.
 - **Day tab:** what's on right now and what's next. Tap a study block to tick it off. Lectures show greyed (fixed, not ticked). Naps and wind-down are rest blocks.
 - **Progress:** completion by day, hours studied vs planned per course, streak, the previous 4 weeks, and counters (e.g. "modules finished").
 - **Projects:** a log of things you've built.
@@ -64,6 +65,7 @@ js/ui.js              all screens, built with createElement/textContent only
 js/alarm.js           alarm overlay, sound, vibration
 js/reminders.js       reminder nudges + alarm scheduling
 js/ics.js             calendar export
+js/importers.js       timetable import: quick-add text, CSV, .ics (+ review preview)
 templates/*.json      built-in timetables (validated like any import)
 tests/*.test.js       node:test, no dependencies
 ```
