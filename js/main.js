@@ -4,7 +4,7 @@
 import { defaultState, uid, isHHMM, isPlainObject, LIMITS, LEADS, SNOOZES, DAYS, PALETTE_SIZE } from "./schema.js";
 import { studyDayOf, weekKey, toHHMM, isoDate, draftToBlock, addRecurring } from "./schedule.js";
 import { arm, isArmed, showAlarm, closeAlarm, currentAlarm } from "./alarm.js";
-import { loadState, saveState, templateMcJayy, exportBackup, parseImport, needsBackup, isPersisted, requestPersist, KEY } from "./storage.js";
+import { loadState, saveState, TEMPLATES, loadTemplate, exportBackup, parseImport, needsBackup, isPersisted, requestPersist, KEY } from "./storage.js";
 import { buildICS } from "./ics.js";
 import { tabsBar, dayView, progressView, planView, projectsView, settingsView, wizardView, bannersView, toastNode } from "./ui.js";
 import {
@@ -14,7 +14,7 @@ import {
 
 // Shown in Settings so you can tell which upgrade is live. Bump with each
 // release together with VERSION in sw.js (see CHANGELOG.md).
-const APP_VERSION = "1.1.0 · Stage 2, step 1 of 7";
+const APP_VERSION = "1.2.0 · Stage 2, step 2 of 7";
 
 const $ = id => document.getElementById(id);
 const app = $("app");
@@ -167,11 +167,17 @@ function finishWizard(draft) {
 
 const wizClicks = {
   "wz-build": () => { wiz.step = 1; },
-  "wz-template": () => {
-    const t = templateMcJayy({ name: state?.profile.name || "" });
-    if (state) { t.projects = state.projects; t.counters = state.counters; t.settings = state.settings; }
-    start(t, ["McJayy's week loaded. Make it yours in the Plan tab."]);
-    return true;
+  "wz-template": k => {
+    const meta = TEMPLATES.find(t => t.id === k);
+    if (!meta) return true;
+    loadTemplate(k).then(r => {
+      if (!r.ok) { toast(r.notes); return; }
+      const t = r.data;
+      t.profile.name = state?.profile.name || "";
+      if (state) { t.projects = state.projects; t.counters = state.counters; t.settings = state.settings; }
+      start(t, [`${meta.name} loaded. Make it yours in the Plan tab.`]);
+    });
+    return true; // start() renders once the template has loaded
   },
   "wz-cancel": () => { wiz = null; },
   "wz-back": () => {
@@ -430,8 +436,7 @@ function importFile(n) {
   const file = n.files[0];
   n.value = "";
   if (file.size > LIMITS.importBytes) { toast(["That file is too big to be a tracker backup (max 256 KB)."]); return; }
-  file.text().then(text => {
-    const r = parseImport(text);
+  file.text().then(text => parseImport(text)).then(r => {
     if (!r.ok) { toast(r.notes); return; }
     if (state && !confirm("Replace everything on this device with the backup?")) return;
     start(r.data, ["Backup imported.", ...r.notes]);
@@ -507,8 +512,7 @@ document.addEventListener("visibilitychange", () => {
 // Another tab of the app saved: pick up its data instead of overwriting it later.
 window.addEventListener("storage", e => {
   if (e.key !== KEY) return;
-  const r = loadState();
-  if (r.state) { state = r.state; if (!typing()) render(); }
+  loadState().then(r => { if (r.state) { state = r.state; if (!typing()) render(); } });
 });
 setInterval(() => {
   if (!state) return;
@@ -554,11 +558,12 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
 
 // ---------- boot ----------
 
-const loaded = loadState();
+const loaded = await loadState();
 state = loaded.state;
 source = loaded.source;
 render();
 if (source === "migrated") toast(["Your old timetable and progress were moved into the new app.", ...loaded.notes]);
+else if (loaded.notes.length) toast(loaded.notes);
 if (state) checkReminders(state);
 
 function readAlarmHash() {

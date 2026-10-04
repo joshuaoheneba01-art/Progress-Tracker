@@ -6,8 +6,9 @@ A study timetable you build yourself: tick off study blocks, keep a streak and g
 
 ## What it does
 
-- **Build your week** with a 2-minute setup (wake time, bedtime, naps, lectures, study sessions), or start from the "McJayy's week" template.
+- **Build your week** with a 2-minute setup (wake time, bedtime, naps, lectures, study sessions), or start from a template: Student, Night owl, Early bird or "McJayy's week".
 - **Plan tab:** add, edit, copy and delete blocks. It catches overlaps and impossible times. Courses get their own colours.
+- **Sleep guard:** warns when a night has under 7 h of sleep (naps count) and names the block cutting into it.
 - **Day tab:** what's on right now and what's next. Tap a study block to tick it off. Lectures show greyed (fixed, not ticked). Naps and wind-down are rest blocks.
 - **Progress:** completion by day, hours studied vs planned per course, streak, the previous 4 weeks, and counters (e.g. "modules finished").
 - **Projects:** a log of things you've built.
@@ -63,6 +64,7 @@ js/ui.js              all screens, built with createElement/textContent only
 js/alarm.js           alarm overlay, sound, vibration
 js/reminders.js       reminder nudges + alarm scheduling
 js/ics.js             calendar export
+templates/*.json      built-in timetables (validated like any import)
 tests/*.test.js       node:test, no dependencies
 ```
 

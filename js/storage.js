@@ -2,57 +2,59 @@
 // through validate(). The store (localStorage) is passed in so tests can
 // use a fake one.
 
-import { validate, defaultState, hasBadKeys, isPlainObject, isId, isWeekKey, uid, DAYS, LIMITS } from "./schema.js";
-import { parseHHMM, toHHMM, isoDate } from "./schedule.js";
+import { validate, defaultState, hasBadKeys, isPlainObject, isId, isWeekKey, uid, LIMITS } from "./schema.js";
+import { isoDate } from "./schedule.js";
 
 export const KEY = "stick_v1";
 export const BROKEN_KEY = "stick_v1_broken";
 export const LEGACY_KEY = "mcjayy_tracker_v1";
 export const LEGACY_SETTINGS_KEY = "mcjayy_settings_v1";
 
-// ---------- built-in template: McJayy's week ----------
-// The original hard-coded week, kept only as template source data.
-// Times are "HH:MM" on the study day; hours above 23 run past midnight.
-const MCJAYY_WEEK = {
-  MON: [["13:00","16:00","nap","NAP · 3 hrs"],["16:30","19:30","uni","CSC 415 · review"],["20:00","22:00","cisco","Cisco JCA · module"],["22:00","24:00","thrive","Thrive · weekly task"],["24:00","27:00","uni","CSC 413 · practice"],["27:00","27:30","wind","Wind down · plan ahead"]],
-  TUE: [["08:45","10:45","uni","CSC 405 · prep"],["11:00","13:00","uni","CSC 401 · prep"],["13:00","16:00","nap","NAP · 3 hrs"],["16:30","18:30","cisco","Cisco JCA · module+lab"],["19:30","21:30","thrive","Thrive · brief + start"],["21:30","23:30","cisco","Cisco · revise + quiz"],["23:30","26:00","git","Projects · build"],["26:00","27:00","python","Python practice"],["27:00","27:30","wind","Wind down · plan ahead"]],
-  WED: [["10:15","12:15","uni","CSC 411 · prep"],["14:45","15:45","nap","NAP · 1 hr"],["19:00","22:00","uni","CSC 401 · review"],["22:00","24:00","cisco","Cisco JCA · module+lab"],["24:00","25:00","python","Python practice"],["25:00","27:00","git","Projects · build"],["27:00","27:30","wind","Wind down · plan ahead"]],
-  THU: [["10:30","12:30","uni","CSC 413 · prep"],["12:30","15:30","nap","NAP · 3 hrs"],["15:30","18:30","uni","CSC 411 · review"],["19:00","22:00","uni","CSC 405 · review"],["22:00","24:00","cisco","Cisco JCA · module+lab"],["24:00","25:30","git","Projects · build"],["25:30","27:00","cisco","Cisco · revise + quiz"],["27:00","27:30","wind","Wind down · plan ahead"]],
-  FRI: [["10:00","12:00","cisco","Cisco JCA · module+lab"],["15:00","17:00","nap","NAP · 2 hrs"],["17:00","20:00","uni","CSC 413 · review"],["20:30","23:30","uni","CSC 415 · practice"],["23:30","25:30","cisco","Cisco · Packet Tracer lab"],["25:30","27:00","git","Projects · build"],["27:00","27:30","wind","Wind down · plan ahead"]],
-  SAT: [["09:00","10:00","git","Projects · build"],["10:00","13:00","uni","CSC 405 · practice"],["13:00","16:00","nap","NAP · 3 hrs"],["16:00","18:00","cisco","Cisco JCA · module+lab"],["18:00","21:00","uni","CSC 411 · practice"],["21:30","23:30","radar","UCC Radar · build"],["23:30","25:00","python","Python practice"],["25:00","27:00","cisco","Cisco · revise + quiz"],["27:00","27:30","wind","Wind down · plan ahead"]],
-  SUN: [["09:30","12:30","uni","CSC 401 · practice"],["13:00","16:00","nap","NAP · 3 hrs"],["16:30","18:30","cisco","Cisco JCA · module+lab"],["19:30","21:30","uni","CSC 415 · prep"],["21:30","22:30","review","Weekly review + plan"],["22:30","24:30","radar","UCC Radar · build"],["24:30","26:00","cisco","Cisco JCA · get ahead"],["26:00","27:00","git","Projects · build"],["27:00","27:30","wind","Wind down · plan ahead"]],
-};
+// ---------- templates ----------
+// Static JSON files in templates/, treated like any import: size-capped,
+// parsed safely and run through validate().
 
-const MCJAYY_CATEGORIES = [
-  { id: "uni", name: "Uni courses", color: 0 },
-  { id: "cisco", name: "Cisco JCA", color: 1 },
-  { id: "thrive", name: "Thrive", color: 2 },
-  { id: "radar", name: "UCC Radar", color: 3 },
-  { id: "python", name: "Python", color: 4 },
-  { id: "git", name: "Projects", color: 5 },
-  { id: "review", name: "Weekly review", color: 6 },
+export const TEMPLATES = [
+  { id: "student", name: "Student", desc: "Morning lectures, study in the afternoon and evening, in bed by 11:30pm.", file: "templates/student.json" },
+  { id: "night-owl", name: "Night owl", desc: "Late start, study into the night, in bed by 2am and up at 10am.", file: "templates/night-owl.json" },
+  { id: "early-bird", name: "Early bird", desc: "Deep work at 6am before lectures, in bed by 10pm.", file: "templates/early-bird.json" },
+  { id: "mcjayy", name: "McJayy's week", desc: "A real final-year week: late nights, long naps, 85 hours of study. An example, not a target.", file: "templates/mcjayy.json" },
 ];
 
-const templateBlockId = (day, start) => `mcj-${day}-${start}`;
-
-// A full, validated state built from McJayy's week. No progress.
-export function templateMcJayy({ name = "" } = {}) {
-  const s = defaultState();
-  s.profile.name = name;
-  s.profile.bedtime = "03:30";
-  s.categories = MCJAYY_CATEGORIES.map(c => ({ ...c }));
-  for (const day of DAYS) {
-    for (const [st, en, c, title] of MCJAYY_WEEK[day]) {
-      const start = parseHHMM(st), end = parseHHMM(en);
-      const kind = c === "nap" ? "nap" : c === "wind" ? "rest" : "study";
-      s.blocks.push({ id: templateBlockId(day, start), day, start, end, title, kind, cat: kind === "study" ? c : null });
-    }
-    // Wake 30 min before the day's first block
-    const first = Math.min(...MCJAYY_WEEK[day].map(r => parseHHMM(r[0])));
-    s.profile.wake[day] = toHHMM(first - 30);
+// A template is a timetable only: wake and bedtimes, subjects and blocks.
+// Anything else in the file (name, ticks, projects, settings) is ignored.
+export function parseTemplate(text) {
+  if (typeof text !== "string" || new TextEncoder().encode(text).length > LIMITS.importBytes) {
+    return { ok: false, data: null, notes: ["That template is too big."] };
   }
-  return validate(s).data;
+  const r = validate(safeParse(text));
+  if (!r.ok) return { ok: false, data: null, notes: ["That template could not be read.", ...r.errors] };
+  const s = defaultState();
+  s.profile.bedtime = r.data.profile.bedtime;
+  s.profile.wake = r.data.profile.wake;
+  s.categories = r.data.categories;
+  s.blocks = r.data.blocks;
+  return { ok: true, data: validate(s).data, notes: r.errors };
 }
+
+async function fetchText(path) {
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.text();
+}
+
+// Returns { ok, data, notes }. `fetcher` is swappable so tests can read files.
+export async function loadTemplate(id, fetcher = fetchText) {
+  const t = TEMPLATES.find(x => x.id === id);
+  if (!t) return { ok: false, data: null, notes: ["Unknown template."] };
+  try {
+    return parseTemplate(await fetcher(t.file));
+  } catch {
+    return { ok: false, data: null, notes: ["Could not load that template. Check your connection and try again."] };
+  }
+}
+
+const getMcJayy = () => loadTemplate("mcjayy");
 
 // ---------- migration from the single-user app ----------
 
@@ -62,11 +64,13 @@ function safeParse(text) {
 }
 
 // Turns the old app's object { weeks, projects, modules } (plus its old
-// settings object) into a v1 state built on McJayy's week.
-// Returns { data, notes }. Never throws; garbage gives the bare template.
-export function migrateLegacy(oldTracker, oldSettings) {
+// settings object) into a v1 state built on `template` (McJayy's week, as
+// returned by parseTemplate). Pure: returns { data, notes }, never throws;
+// garbage gives the bare template.
+export function migrateLegacy(oldTracker, oldSettings, template) {
   const notes = [];
-  const s = templateMcJayy({ name: "McJayy" });
+  const s = structuredClone(template);
+  s.profile.name = "McJayy";
 
   const old = isPlainObject(oldTracker) && !hasBadKeys(oldTracker) ? oldTracker : null;
   if (oldTracker != null && !old) notes.push("Old progress could not be read; started from the template.");
@@ -120,10 +124,11 @@ function toOldHHMM(min) {
 
 const defaultStore = () => globalThis.localStorage;
 
-// Returns { state, source, notes }.
+// Returns a promise of { state, source, notes }.
 // source: "stored" | "migrated" | "new" | "broken"
 // state is null for "new" and "broken" (the app shows onboarding).
-export function loadState(store = defaultStore()) {
+// Async only because migrating old data needs McJayy's week from templates/.
+export async function loadState(store = defaultStore(), getTemplate = getMcJayy) {
   let raw = null;
   try { raw = store.getItem(KEY); } catch { /* storage blocked */ }
 
@@ -138,7 +143,12 @@ export function loadState(store = defaultStore()) {
   let legacy = null, legacySettings = null;
   try { legacy = store.getItem(LEGACY_KEY); legacySettings = store.getItem(LEGACY_SETTINGS_KEY); } catch { /* ignore */ }
   if (legacy !== null) {
-    const m = migrateLegacy(safeParse(legacy), safeParse(legacySettings));
+    const t = await getTemplate();
+    if (!t.ok) {
+      // Old data stays untouched; we try again next time the app opens.
+      return { state: null, source: "new", notes: ["Your data from the old app was found but could not be moved yet. It is safe: open the app again while online."] };
+    }
+    const m = migrateLegacy(safeParse(legacy), safeParse(legacySettings), t.data);
     saveState(m.data, store); // old keys are left in place as a safety net
     return { state: m.data, source: "migrated", notes: m.notes };
   }
@@ -164,8 +174,9 @@ export function exportBackup(state, now = new Date()) {
 }
 
 // Reads a backup file's text. Accepts v1 backups and the old app's export.
-// Returns { ok, data, notes }.
-export function parseImport(text) {
+// Returns a promise of { ok, data, notes } (async: old-app backups are
+// rebuilt on McJayy's week, which is loaded from templates/).
+export async function parseImport(text, getTemplate = getMcJayy) {
   if (typeof text !== "string") return { ok: false, data: null, notes: ["That file could not be read."] };
   if (new TextEncoder().encode(text).length > LIMITS.importBytes) {
     return { ok: false, data: null, notes: ["That file is too big to be a tracker backup (max 256 KB)."] };
@@ -173,7 +184,9 @@ export function parseImport(text) {
   const obj = safeParse(text);
   if (obj === null) return { ok: false, data: null, notes: ["That file is not valid JSON."] };
   if (isPlainObject(obj) && obj.v === undefined && "weeks" in obj && !hasBadKeys(obj)) {
-    const m = migrateLegacy(obj, null);
+    const t = await getTemplate();
+    if (!t.ok) return { ok: false, data: null, notes: ["This is a backup from the old app. Converting it needs a connection the first time; try again online."] };
+    const m = migrateLegacy(obj, null, t.data);
     return { ok: true, data: m.data, notes: ["This is a backup from the old app; it was converted.", ...m.notes] };
   }
   const r = validate(obj);

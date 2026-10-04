@@ -1,0 +1,550 @@
+{
+ "v": 1,
+ "profile": {
+  "name": "",
+  "bedtime": "03:30",
+  "wake": {
+   "MON": "12:30",
+   "TUE": "08:15",
+   "WED": "09:45",
+   "THU": "10:00",
+   "FRI": "09:30",
+   "SAT": "08:30",
+   "SUN": "09:00"
+  }
+ },
+ "categories": [
+  {
+   "id": "uni",
+   "name": "Uni courses",
+   "color": 0
+  },
+  {
+   "id": "cisco",
+   "name": "Cisco JCA",
+   "color": 1
+  },
+  {
+   "id": "thrive",
+   "name": "Thrive",
+   "color": 2
+  },
+  {
+   "id": "radar",
+   "name": "UCC Radar",
+   "color": 3
+  },
+  {
+   "id": "python",
+   "name": "Python",
+   "color": 4
+  },
+  {
+   "id": "git",
+   "name": "Projects",
+   "color": 5
+  },
+  {
+   "id": "review",
+   "name": "Weekly review",
+   "color": 6
+  }
+ ],
+ "blocks": [
+  {
+   "id": "mcj-MON-780",
+   "day": "MON",
+   "start": 780,
+   "end": 960,
+   "title": "NAP · 3 hrs",
+   "kind": "nap",
+   "cat": null
+  },
+  {
+   "id": "mcj-MON-990",
+   "day": "MON",
+   "start": 990,
+   "end": 1170,
+   "title": "CSC 415 · review",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-MON-1200",
+   "day": "MON",
+   "start": 1200,
+   "end": 1320,
+   "title": "Cisco JCA · module",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-MON-1320",
+   "day": "MON",
+   "start": 1320,
+   "end": 1440,
+   "title": "Thrive · weekly task",
+   "kind": "study",
+   "cat": "thrive"
+  },
+  {
+   "id": "mcj-MON-1440",
+   "day": "MON",
+   "start": 1440,
+   "end": 1620,
+   "title": "CSC 413 · practice",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-MON-1620",
+   "day": "MON",
+   "start": 1620,
+   "end": 1650,
+   "title": "Wind down · plan ahead",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "mcj-TUE-525",
+   "day": "TUE",
+   "start": 525,
+   "end": 645,
+   "title": "CSC 405 · prep",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-TUE-660",
+   "day": "TUE",
+   "start": 660,
+   "end": 780,
+   "title": "CSC 401 · prep",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-TUE-780",
+   "day": "TUE",
+   "start": 780,
+   "end": 960,
+   "title": "NAP · 3 hrs",
+   "kind": "nap",
+   "cat": null
+  },
+  {
+   "id": "mcj-TUE-990",
+   "day": "TUE",
+   "start": 990,
+   "end": 1110,
+   "title": "Cisco JCA · module+lab",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-TUE-1170",
+   "day": "TUE",
+   "start": 1170,
+   "end": 1290,
+   "title": "Thrive · brief + start",
+   "kind": "study",
+   "cat": "thrive"
+  },
+  {
+   "id": "mcj-TUE-1290",
+   "day": "TUE",
+   "start": 1290,
+   "end": 1410,
+   "title": "Cisco · revise + quiz",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-TUE-1410",
+   "day": "TUE",
+   "start": 1410,
+   "end": 1560,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "git"
+  },
+  {
+   "id": "mcj-TUE-1560",
+   "day": "TUE",
+   "start": 1560,
+   "end": 1620,
+   "title": "Python practice",
+   "kind": "study",
+   "cat": "python"
+  },
+  {
+   "id": "mcj-TUE-1620",
+   "day": "TUE",
+   "start": 1620,
+   "end": 1650,
+   "title": "Wind down · plan ahead",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "mcj-WED-615",
+   "day": "WED",
+   "start": 615,
+   "end": 735,
+   "title": "CSC 411 · prep",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-WED-885",
+   "day": "WED",
+   "start": 885,
+   "end": 945,
+   "title": "NAP · 1 hr",
+   "kind": "nap",
+   "cat": null
+  },
+  {
+   "id": "mcj-WED-1140",
+   "day": "WED",
+   "start": 1140,
+   "end": 1320,
+   "title": "CSC 401 · review",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-WED-1320",
+   "day": "WED",
+   "start": 1320,
+   "end": 1440,
+   "title": "Cisco JCA · module+lab",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-WED-1440",
+   "day": "WED",
+   "start": 1440,
+   "end": 1500,
+   "title": "Python practice",
+   "kind": "study",
+   "cat": "python"
+  },
+  {
+   "id": "mcj-WED-1500",
+   "day": "WED",
+   "start": 1500,
+   "end": 1620,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "git"
+  },
+  {
+   "id": "mcj-WED-1620",
+   "day": "WED",
+   "start": 1620,
+   "end": 1650,
+   "title": "Wind down · plan ahead",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "mcj-THU-630",
+   "day": "THU",
+   "start": 630,
+   "end": 750,
+   "title": "CSC 413 · prep",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-THU-750",
+   "day": "THU",
+   "start": 750,
+   "end": 930,
+   "title": "NAP · 3 hrs",
+   "kind": "nap",
+   "cat": null
+  },
+  {
+   "id": "mcj-THU-930",
+   "day": "THU",
+   "start": 930,
+   "end": 1110,
+   "title": "CSC 411 · review",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-THU-1140",
+   "day": "THU",
+   "start": 1140,
+   "end": 1320,
+   "title": "CSC 405 · review",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-THU-1320",
+   "day": "THU",
+   "start": 1320,
+   "end": 1440,
+   "title": "Cisco JCA · module+lab",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-THU-1440",
+   "day": "THU",
+   "start": 1440,
+   "end": 1530,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "git"
+  },
+  {
+   "id": "mcj-THU-1530",
+   "day": "THU",
+   "start": 1530,
+   "end": 1620,
+   "title": "Cisco · revise + quiz",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-THU-1620",
+   "day": "THU",
+   "start": 1620,
+   "end": 1650,
+   "title": "Wind down · plan ahead",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "mcj-FRI-600",
+   "day": "FRI",
+   "start": 600,
+   "end": 720,
+   "title": "Cisco JCA · module+lab",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-FRI-900",
+   "day": "FRI",
+   "start": 900,
+   "end": 1020,
+   "title": "NAP · 2 hrs",
+   "kind": "nap",
+   "cat": null
+  },
+  {
+   "id": "mcj-FRI-1020",
+   "day": "FRI",
+   "start": 1020,
+   "end": 1200,
+   "title": "CSC 413 · review",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-FRI-1230",
+   "day": "FRI",
+   "start": 1230,
+   "end": 1410,
+   "title": "CSC 415 · practice",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-FRI-1410",
+   "day": "FRI",
+   "start": 1410,
+   "end": 1530,
+   "title": "Cisco · Packet Tracer lab",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-FRI-1530",
+   "day": "FRI",
+   "start": 1530,
+   "end": 1620,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "git"
+  },
+  {
+   "id": "mcj-FRI-1620",
+   "day": "FRI",
+   "start": 1620,
+   "end": 1650,
+   "title": "Wind down · plan ahead",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "mcj-SAT-540",
+   "day": "SAT",
+   "start": 540,
+   "end": 600,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "git"
+  },
+  {
+   "id": "mcj-SAT-600",
+   "day": "SAT",
+   "start": 600,
+   "end": 780,
+   "title": "CSC 405 · practice",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-SAT-780",
+   "day": "SAT",
+   "start": 780,
+   "end": 960,
+   "title": "NAP · 3 hrs",
+   "kind": "nap",
+   "cat": null
+  },
+  {
+   "id": "mcj-SAT-960",
+   "day": "SAT",
+   "start": 960,
+   "end": 1080,
+   "title": "Cisco JCA · module+lab",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-SAT-1080",
+   "day": "SAT",
+   "start": 1080,
+   "end": 1260,
+   "title": "CSC 411 · practice",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-SAT-1290",
+   "day": "SAT",
+   "start": 1290,
+   "end": 1410,
+   "title": "UCC Radar · build",
+   "kind": "study",
+   "cat": "radar"
+  },
+  {
+   "id": "mcj-SAT-1410",
+   "day": "SAT",
+   "start": 1410,
+   "end": 1500,
+   "title": "Python practice",
+   "kind": "study",
+   "cat": "python"
+  },
+  {
+   "id": "mcj-SAT-1500",
+   "day": "SAT",
+   "start": 1500,
+   "end": 1620,
+   "title": "Cisco · revise + quiz",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-SAT-1620",
+   "day": "SAT",
+   "start": 1620,
+   "end": 1650,
+   "title": "Wind down · plan ahead",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "mcj-SUN-570",
+   "day": "SUN",
+   "start": 570,
+   "end": 750,
+   "title": "CSC 401 · practice",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-SUN-780",
+   "day": "SUN",
+   "start": 780,
+   "end": 960,
+   "title": "NAP · 3 hrs",
+   "kind": "nap",
+   "cat": null
+  },
+  {
+   "id": "mcj-SUN-990",
+   "day": "SUN",
+   "start": 990,
+   "end": 1110,
+   "title": "Cisco JCA · module+lab",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-SUN-1170",
+   "day": "SUN",
+   "start": 1170,
+   "end": 1290,
+   "title": "CSC 415 · prep",
+   "kind": "study",
+   "cat": "uni"
+  },
+  {
+   "id": "mcj-SUN-1290",
+   "day": "SUN",
+   "start": 1290,
+   "end": 1350,
+   "title": "Weekly review + plan",
+   "kind": "study",
+   "cat": "review"
+  },
+  {
+   "id": "mcj-SUN-1350",
+   "day": "SUN",
+   "start": 1350,
+   "end": 1470,
+   "title": "UCC Radar · build",
+   "kind": "study",
+   "cat": "radar"
+  },
+  {
+   "id": "mcj-SUN-1470",
+   "day": "SUN",
+   "start": 1470,
+   "end": 1560,
+   "title": "Cisco JCA · get ahead",
+   "kind": "study",
+   "cat": "cisco"
+  },
+  {
+   "id": "mcj-SUN-1560",
+   "day": "SUN",
+   "start": 1560,
+   "end": 1620,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "git"
+  },
+  {
+   "id": "mcj-SUN-1620",
+   "day": "SUN",
+   "start": 1620,
+   "end": 1650,
+   "title": "Wind down · plan ahead",
+   "kind": "rest",
+   "cat": null
+  }
+ ]
+}

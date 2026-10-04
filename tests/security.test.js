@@ -63,7 +63,8 @@ test("the service worker precaches every app file, and versions match", () => {
   const sw = read("sw.js");
   const listed = new Set([...sw.matchAll(/"\.\/([^"]*)"/g)].map(m => m[1]));
   const needed = ["", "index.html", "manifest.webmanifest", "css/app.css", ...JS,
-    ...readdirSync(new URL("../icons/", import.meta.url)).map(f => "icons/" + f)];
+    ...readdirSync(new URL("../icons/", import.meta.url)).map(f => "icons/" + f),
+    ...readdirSync(new URL("../templates/", import.meta.url)).map(f => "templates/" + f)];
   for (const f of needed) assert.ok(listed.has(f), `sw.js does not precache ${f || "./"}`);
   const swVer = /const VERSION = "([^"]+)"/.exec(sw)[1];
   const appVer = /const APP_VERSION = "([^ "]+)/.exec(read("js/main.js"))[1];

@@ -1,0 +1,310 @@
+{
+ "v": 1,
+ "profile": {
+  "name": "",
+  "bedtime": "02:00",
+  "wake": {
+   "MON": "10:00",
+   "TUE": "10:00",
+   "WED": "10:00",
+   "THU": "10:00",
+   "FRI": "10:00",
+   "SAT": "10:00",
+   "SUN": "10:00"
+  }
+ },
+ "categories": [
+  {
+   "id": "c1",
+   "name": "Course 1",
+   "color": 0
+  },
+  {
+   "id": "c2",
+   "name": "Course 2",
+   "color": 3
+  },
+  {
+   "id": "proj",
+   "name": "Projects",
+   "color": 5
+  },
+  {
+   "id": "review",
+   "name": "Weekly review",
+   "color": 6
+  }
+ ],
+ "blocks": [
+  {
+   "id": "owl-MON-660",
+   "day": "MON",
+   "start": 660,
+   "end": 780,
+   "title": "Course 1 · lecture",
+   "kind": "lecture",
+   "cat": "c1"
+  },
+  {
+   "id": "owl-MON-1020",
+   "day": "MON",
+   "start": 1020,
+   "end": 1140,
+   "title": "Course 2 · review",
+   "kind": "study",
+   "cat": "c2"
+  },
+  {
+   "id": "owl-MON-1260",
+   "day": "MON",
+   "start": 1260,
+   "end": 1380,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "proj"
+  },
+  {
+   "id": "owl-MON-1410",
+   "day": "MON",
+   "start": 1410,
+   "end": 1500,
+   "title": "Course 1 · practice",
+   "kind": "study",
+   "cat": "c1"
+  },
+  {
+   "id": "owl-MON-1530",
+   "day": "MON",
+   "start": 1530,
+   "end": 1560,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "owl-TUE-840",
+   "day": "TUE",
+   "start": 840,
+   "end": 960,
+   "title": "Course 2 · lecture",
+   "kind": "lecture",
+   "cat": "c2"
+  },
+  {
+   "id": "owl-TUE-1020",
+   "day": "TUE",
+   "start": 1020,
+   "end": 1140,
+   "title": "Course 1 · review",
+   "kind": "study",
+   "cat": "c1"
+  },
+  {
+   "id": "owl-TUE-1260",
+   "day": "TUE",
+   "start": 1260,
+   "end": 1380,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "proj"
+  },
+  {
+   "id": "owl-TUE-1410",
+   "day": "TUE",
+   "start": 1410,
+   "end": 1500,
+   "title": "Course 1 · practice",
+   "kind": "study",
+   "cat": "c1"
+  },
+  {
+   "id": "owl-TUE-1530",
+   "day": "TUE",
+   "start": 1530,
+   "end": 1560,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "owl-WED-660",
+   "day": "WED",
+   "start": 660,
+   "end": 780,
+   "title": "Course 1 · lecture",
+   "kind": "lecture",
+   "cat": "c1"
+  },
+  {
+   "id": "owl-WED-1020",
+   "day": "WED",
+   "start": 1020,
+   "end": 1140,
+   "title": "Course 2 · review",
+   "kind": "study",
+   "cat": "c2"
+  },
+  {
+   "id": "owl-WED-1260",
+   "day": "WED",
+   "start": 1260,
+   "end": 1380,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "proj"
+  },
+  {
+   "id": "owl-WED-1410",
+   "day": "WED",
+   "start": 1410,
+   "end": 1500,
+   "title": "Course 1 · practice",
+   "kind": "study",
+   "cat": "c1"
+  },
+  {
+   "id": "owl-WED-1530",
+   "day": "WED",
+   "start": 1530,
+   "end": 1560,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "owl-THU-840",
+   "day": "THU",
+   "start": 840,
+   "end": 960,
+   "title": "Course 2 · lecture",
+   "kind": "lecture",
+   "cat": "c2"
+  },
+  {
+   "id": "owl-THU-1020",
+   "day": "THU",
+   "start": 1020,
+   "end": 1140,
+   "title": "Course 1 · review",
+   "kind": "study",
+   "cat": "c1"
+  },
+  {
+   "id": "owl-THU-1260",
+   "day": "THU",
+   "start": 1260,
+   "end": 1380,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "proj"
+  },
+  {
+   "id": "owl-THU-1410",
+   "day": "THU",
+   "start": 1410,
+   "end": 1500,
+   "title": "Course 1 · practice",
+   "kind": "study",
+   "cat": "c1"
+  },
+  {
+   "id": "owl-THU-1530",
+   "day": "THU",
+   "start": 1530,
+   "end": 1560,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "owl-FRI-1020",
+   "day": "FRI",
+   "start": 1020,
+   "end": 1140,
+   "title": "Course 2 · review",
+   "kind": "study",
+   "cat": "c2"
+  },
+  {
+   "id": "owl-FRI-1260",
+   "day": "FRI",
+   "start": 1260,
+   "end": 1380,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "proj"
+  },
+  {
+   "id": "owl-FRI-1410",
+   "day": "FRI",
+   "start": 1410,
+   "end": 1500,
+   "title": "Course 2 · practice",
+   "kind": "study",
+   "cat": "c2"
+  },
+  {
+   "id": "owl-FRI-1530",
+   "day": "FRI",
+   "start": 1530,
+   "end": 1560,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "owl-SAT-840",
+   "day": "SAT",
+   "start": 840,
+   "end": 960,
+   "title": "Course 1 · practice",
+   "kind": "study",
+   "cat": "c1"
+  },
+  {
+   "id": "owl-SAT-1260",
+   "day": "SAT",
+   "start": 1260,
+   "end": 1380,
+   "title": "Projects · build",
+   "kind": "study",
+   "cat": "proj"
+  },
+  {
+   "id": "owl-SAT-1530",
+   "day": "SAT",
+   "start": 1530,
+   "end": 1560,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "owl-SUN-840",
+   "day": "SUN",
+   "start": 840,
+   "end": 960,
+   "title": "Course 2 · practice",
+   "kind": "study",
+   "cat": "c2"
+  },
+  {
+   "id": "owl-SUN-1260",
+   "day": "SUN",
+   "start": 1260,
+   "end": 1320,
+   "title": "Weekly review + plan",
+   "kind": "study",
+   "cat": "review"
+  },
+  {
+   "id": "owl-SUN-1530",
+   "day": "SUN",
+   "start": 1530,
+   "end": 1560,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  }
+ ]
+}

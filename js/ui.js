@@ -4,6 +4,7 @@
 // with data-a / data-k and handled by delegation in main.js.
 
 import { DAYS, KINDS, PALETTE_SIZE, LIMITS } from "./schema.js";
+import { TEMPLATES } from "./storage.js";
 import {
   fmtRange, fmtHours, dur, blocksForDay, currentAndNext, dayStats, weekStats,
   planned, sum, streak, weekStart, addDays, isoDate, findOverlaps, sleepReport, fmtDuration,
@@ -312,8 +313,8 @@ export function settingsView(state, ctx) {
 
   out.push(el("div", { class: "card" },
     el("h3", {}, "Timetable"),
-    el("div", { class: "sub mb8" }, "Change single blocks in the Plan tab. To start your week over, run the setup again; your projects, counters and settings are kept."),
-    btn("Run setup again", "wz-open")));
+    el("div", { class: "sub mb8" }, "Change single blocks in the Plan tab. To start your week over, run the setup again or load a template (Student, Night owl, Early bird, McJayy's week). Your projects, counters and settings are kept."),
+    btn("Run setup again or load a template", "wz-open")));
 
   out.push(el("div", { class: "foot" }, `Version ${ctx.version}`));
   return out;
@@ -456,10 +457,15 @@ export function wizardView(wiz, { hasState, source }) {
       el("div", { class: "sub mb8" }, "Build your weekly timetable, tick off study blocks and keep your streak. Everything stays on this phone."),
       el("div", { class: "stack" },
         btn("Build my week (about 2 minutes)", "wz-build", undefined, "btn pri"),
-        btn("Start from a template: McJayy's week", "wz-template"),
         !hasState && el("label", { class: "btn" }, "Import a backup",
           el("input", { type: "file", class: "hidden", accept: "application/json,.json", data: { a: "import" } })),
         hasState && btn("Cancel", "wz-cancel"))));
+    out.push(el("div", { class: "card" },
+      el("h3", {}, "Or start from a template"),
+      el("div", { class: "sub mb8" }, "Pick one that's close, then rename courses and move blocks in the Plan tab."),
+      TEMPLATES.map(t => el("button", { type: "button", class: "tpl", data: { a: "wz-template", k: t.id } },
+        el("b", {}, t.name),
+        el("span", { class: "sub" }, t.desc)))));
     return out;
   }
 

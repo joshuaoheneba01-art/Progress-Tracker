@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { sleepReport, fmtDuration } from "../js/schedule.js";
 import { defaultState } from "../js/schema.js";
-import { templateMcJayy } from "../js/storage.js";
+import { templateMcJayy } from "./fixtures.js";
 
 function base(bedtime, wake = "07:00") {
   const s = defaultState();

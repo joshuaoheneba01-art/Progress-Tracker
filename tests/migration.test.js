@@ -1,10 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  templateMcJayy, migrateLegacy, loadState, saveState, parseImport, exportBackup,
+  migrateLegacy, loadState, saveState, parseImport, exportBackup,
   KEY, BROKEN_KEY, LEGACY_KEY, LEGACY_SETTINGS_KEY,
 } from "../js/storage.js";
 import { validate, defaultState } from "../js/schema.js";
+import { templateMcJayy, getMcJayy } from "./fixtures.js";
 import { findOverlaps, dayStats } from "../js/schedule.js";
 
 // Minimal localStorage stand-in.
@@ -34,7 +35,7 @@ const OLD = {
 };
 const OLD_SETTINGS = { remind: true, lead: 15 };
 
-test("the template is valid, has no overlaps and matches the old week", () => {
+test("the template is valid, has no overlaps and matches the old week", async () => {
   const t = templateMcJayy();
   assert.equal(validate(t).ok, true);
   assert.deepEqual(validate(t).errors, []);
@@ -50,8 +51,8 @@ test("the template is valid, has no overlaps and matches the old week", () => {
   assert.equal(t.blocks.find(x => x.id === "mcj-MON-780").cat, null); // nap has no category
 });
 
-test("migration carries progress, projects, counter and settings across", () => {
-  const { data, notes } = migrateLegacy(OLD, OLD_SETTINGS);
+test("migration carries progress, projects, counter and settings across", async () => {
+  const { data, notes } = migrateLegacy(OLD, OLD_SETTINGS, templateMcJayy());
   assert.equal(validate(data).ok, true);
   assert.equal(data.profile.name, "McJayy");
   assert.deepEqual(data.progress, {
@@ -75,54 +76,54 @@ test("migration carries progress, projects, counter and settings across", () => 
   assert.equal(dayStats(data, "2026-09-21", "MON").done, 2);
 });
 
-test("migration survives garbage", () => {
+test("migration survives garbage", async () => {
   for (const junk of [null, 42, "x", [], { weeks: "nope", projects: {}, modules: -3 }, { weeks: { "2026-09-21": [1, 2] } }]) {
-    const { data } = migrateLegacy(junk, { lead: 999, remind: "yes" });
+    const { data } = migrateLegacy(junk, { lead: 999, remind: "yes" }, templateMcJayy());
     assert.equal(validate(data).ok, true, JSON.stringify(junk));
     assert.deepEqual(data.progress, {});
     assert.equal(data.settings.lead, 10);
     assert.equal(data.settings.remind, false);
   }
   const hostile = JSON.parse('{"weeks":{"__proto__":{"MON@16:30":1}},"projects":[]}');
-  const { data, notes } = migrateLegacy(hostile, null);
+  const { data, notes } = migrateLegacy(hostile, null, templateMcJayy());
   assert.deepEqual(data.progress, {});
   assert.ok(notes.some(n => /could not be read/.test(n)));
   assert.equal({}["MON@16:30"], undefined);
 });
 
-test("loadState: fresh device", () => {
-  const r = loadState(fakeStore());
+test("loadState: fresh device", async () => {
+  const r = await loadState(fakeStore(), getMcJayy);
   assert.equal(r.source, "new");
   assert.equal(r.state, null);
 });
 
-test("loadState: migrates once, saves, and keeps the old keys", () => {
+test("loadState: migrates once, saves, and keeps the old keys", async () => {
   const store = fakeStore({ [LEGACY_KEY]: JSON.stringify(OLD), [LEGACY_SETTINGS_KEY]: JSON.stringify(OLD_SETTINGS) });
-  const r = loadState(store);
+  const r = await loadState(store, getMcJayy);
   assert.equal(r.source, "migrated");
   assert.equal(r.state.progress["2026-09-21"]["mcj-MON-990"], true);
   assert.ok(store.getItem(KEY));
   assert.ok(store.getItem(LEGACY_KEY));
   // second load reads the new key
-  assert.equal(loadState(store).source, "stored");
+  assert.equal((await loadState(store, getMcJayy)).source, "stored");
 });
 
-test("loadState: corrupt legacy key still gives a working template", () => {
-  const r = loadState(fakeStore({ [LEGACY_KEY]: "{not json" }));
+test("loadState: corrupt legacy key still gives a working template", async () => {
+  const r = await loadState(fakeStore({ [LEGACY_KEY]: "{not json" }), getMcJayy);
   assert.equal(r.source, "migrated");
   assert.equal(r.state.blocks.length, 55);
   assert.deepEqual(r.state.progress, {});
 });
 
-test("loadState: unreadable new data is kept aside, not overwritten", () => {
+test("loadState: unreadable new data is kept aside, not overwritten", async () => {
   const store = fakeStore({ [KEY]: '{"v":99}' });
-  const r = loadState(store);
+  const r = await loadState(store, getMcJayy);
   assert.equal(r.source, "broken");
   assert.equal(r.state, null);
   assert.equal(store.getItem(BROKEN_KEY), '{"v":99}');
 });
 
-test("saveState validates before writing", () => {
+test("saveState validates before writing", async () => {
   const store = fakeStore();
   const s = defaultState();
   s.blocks.push({ id: "b1", day: "MON", start: 0, end: 60, title: "x".repeat(500), kind: "study", extra: 1 });
@@ -134,27 +135,27 @@ test("saveState validates before writing", () => {
   assert.equal(saveState(defaultState(), full), null);
 });
 
-test("backup export → import round-trips", () => {
-  const { data } = migrateLegacy(OLD, OLD_SETTINGS);
+test("backup export → import round-trips", async () => {
+  const { data } = migrateLegacy(OLD, OLD_SETTINGS, templateMcJayy());
   const b = exportBackup(data, new Date(2026, 9, 3));
   assert.equal(b.name, "stick-tracker-backup-2026-10-03.json");
-  const r = parseImport(b.text);
+  const r = (await parseImport(b.text, getMcJayy));
   assert.equal(r.ok, true);
   assert.deepEqual(r.data, data);
 });
 
-test("import accepts the old app's export and rejects hostile files", () => {
-  const old = parseImport(JSON.stringify(OLD));
+test("import accepts the old app's export and rejects hostile files", async () => {
+  const old = (await parseImport(JSON.stringify(OLD), getMcJayy));
   assert.equal(old.ok, true);
   assert.equal(old.data.counters[0].count, 7);
   assert.ok(old.notes[0].includes("old app"));
 
-  assert.equal(parseImport("{nope").ok, false);
-  assert.equal(parseImport("null").ok, false);
-  assert.equal(parseImport('{"v":1,"__proto__":{"x":1}}').ok, false);
-  assert.equal(parseImport('{"weeks":{},"constructor":{"prototype":{"x":1}}}').ok, false);
-  assert.equal(parseImport(" ".repeat(300 * 1024) + "{}").ok, false); // over 256 KB
-  assert.match(parseImport("x".repeat(300 * 1024)).notes[0], /too big/);
+  assert.equal((await parseImport("{nope", getMcJayy)).ok, false);
+  assert.equal((await parseImport("null", getMcJayy)).ok, false);
+  assert.equal((await parseImport('{"v":1,"__proto__":{"x":1}}', getMcJayy)).ok, false);
+  assert.equal((await parseImport('{"weeks":{},"constructor":{"prototype":{"x":1}}}', getMcJayy)).ok, false);
+  assert.equal((await parseImport(" ".repeat(300 * 1024) + "{}", getMcJayy)).ok, false); // over 256 KB
+  assert.match((await parseImport("x".repeat(300 * 1024), getMcJayy)).notes[0], /too big/);
 });
 
 test("backup nudge: 7 days after the last export, or a week into use if never exported", async () => {

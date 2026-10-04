@@ -1,0 +1,265 @@
+{
+ "v": 1,
+ "profile": {
+  "name": "",
+  "bedtime": "23:30",
+  "wake": {
+   "MON": "07:30",
+   "TUE": "07:30",
+   "WED": "07:30",
+   "THU": "07:30",
+   "FRI": "07:30",
+   "SAT": "07:30",
+   "SUN": "07:30"
+  }
+ },
+ "categories": [
+  {
+   "id": "c1",
+   "name": "Course 1",
+   "color": 0
+  },
+  {
+   "id": "c2",
+   "name": "Course 2",
+   "color": 3
+  },
+  {
+   "id": "c3",
+   "name": "Course 3",
+   "color": 2
+  },
+  {
+   "id": "review",
+   "name": "Weekly review",
+   "color": 6
+  }
+ ],
+ "blocks": [
+  {
+   "id": "stu-MON-540",
+   "day": "MON",
+   "start": 540,
+   "end": 660,
+   "title": "Course 1 · lecture",
+   "kind": "lecture",
+   "cat": "c1"
+  },
+  {
+   "id": "stu-MON-840",
+   "day": "MON",
+   "start": 840,
+   "end": 960,
+   "title": "Course 2 · review",
+   "kind": "study",
+   "cat": "c2"
+  },
+  {
+   "id": "stu-MON-1140",
+   "day": "MON",
+   "start": 1140,
+   "end": 1260,
+   "title": "Course 3 · assignment",
+   "kind": "study",
+   "cat": "c3"
+  },
+  {
+   "id": "stu-MON-1380",
+   "day": "MON",
+   "start": 1380,
+   "end": 1410,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "stu-TUE-600",
+   "day": "TUE",
+   "start": 600,
+   "end": 720,
+   "title": "Course 2 · lecture",
+   "kind": "lecture",
+   "cat": "c2"
+  },
+  {
+   "id": "stu-TUE-840",
+   "day": "TUE",
+   "start": 840,
+   "end": 960,
+   "title": "Course 1 · review",
+   "kind": "study",
+   "cat": "c1"
+  },
+  {
+   "id": "stu-TUE-1140",
+   "day": "TUE",
+   "start": 1140,
+   "end": 1260,
+   "title": "Course 3 · assignment",
+   "kind": "study",
+   "cat": "c3"
+  },
+  {
+   "id": "stu-TUE-1380",
+   "day": "TUE",
+   "start": 1380,
+   "end": 1410,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "stu-WED-540",
+   "day": "WED",
+   "start": 540,
+   "end": 660,
+   "title": "Course 1 · lecture",
+   "kind": "lecture",
+   "cat": "c1"
+  },
+  {
+   "id": "stu-WED-840",
+   "day": "WED",
+   "start": 840,
+   "end": 960,
+   "title": "Course 3 · reading",
+   "kind": "study",
+   "cat": "c3"
+  },
+  {
+   "id": "stu-WED-1140",
+   "day": "WED",
+   "start": 1140,
+   "end": 1260,
+   "title": "Course 2 · practice",
+   "kind": "study",
+   "cat": "c2"
+  },
+  {
+   "id": "stu-WED-1380",
+   "day": "WED",
+   "start": 1380,
+   "end": 1410,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "stu-THU-600",
+   "day": "THU",
+   "start": 600,
+   "end": 720,
+   "title": "Course 2 · lecture",
+   "kind": "lecture",
+   "cat": "c2"
+  },
+  {
+   "id": "stu-THU-840",
+   "day": "THU",
+   "start": 840,
+   "end": 960,
+   "title": "Course 1 · review",
+   "kind": "study",
+   "cat": "c1"
+  },
+  {
+   "id": "stu-THU-1140",
+   "day": "THU",
+   "start": 1140,
+   "end": 1260,
+   "title": "Course 3 · assignment",
+   "kind": "study",
+   "cat": "c3"
+  },
+  {
+   "id": "stu-THU-1380",
+   "day": "THU",
+   "start": 1380,
+   "end": 1410,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "stu-FRI-540",
+   "day": "FRI",
+   "start": 540,
+   "end": 660,
+   "title": "Course 1 · lecture",
+   "kind": "lecture",
+   "cat": "c1"
+  },
+  {
+   "id": "stu-FRI-840",
+   "day": "FRI",
+   "start": 840,
+   "end": 960,
+   "title": "Course 2 · review",
+   "kind": "study",
+   "cat": "c2"
+  },
+  {
+   "id": "stu-FRI-1380",
+   "day": "FRI",
+   "start": 1380,
+   "end": 1410,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "stu-SAT-600",
+   "day": "SAT",
+   "start": 600,
+   "end": 720,
+   "title": "Course 1 · practice",
+   "kind": "study",
+   "cat": "c1"
+  },
+  {
+   "id": "stu-SAT-840",
+   "day": "SAT",
+   "start": 840,
+   "end": 930,
+   "title": "Course 3 · reading",
+   "kind": "study",
+   "cat": "c3"
+  },
+  {
+   "id": "stu-SAT-1380",
+   "day": "SAT",
+   "start": 1380,
+   "end": 1410,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  },
+  {
+   "id": "stu-SUN-600",
+   "day": "SUN",
+   "start": 600,
+   "end": 720,
+   "title": "Course 2 · practice",
+   "kind": "study",
+   "cat": "c2"
+  },
+  {
+   "id": "stu-SUN-1080",
+   "day": "SUN",
+   "start": 1080,
+   "end": 1140,
+   "title": "Weekly review + plan",
+   "kind": "study",
+   "cat": "review"
+  },
+  {
+   "id": "stu-SUN-1380",
+   "day": "SUN",
+   "start": 1380,
+   "end": 1410,
+   "title": "Wind down",
+   "kind": "rest",
+   "cat": null
+  }
+ ]
+}

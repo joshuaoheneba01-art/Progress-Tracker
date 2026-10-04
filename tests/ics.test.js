@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildICS, icsText, foldLine } from "../js/ics.js";
 import { defaultState } from "../js/schema.js";
-import { templateMcJayy } from "../js/storage.js";
+import { templateMcJayy } from "./fixtures.js";
 
 const NOW = new Date(2026, 9, 3, 10, 0); // Sat 3 Oct 2026 → first Monday is 5 Oct
 const enc = new TextEncoder();

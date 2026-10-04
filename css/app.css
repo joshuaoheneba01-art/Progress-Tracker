@@ -178,3 +178,8 @@ body.alarm-open{ overflow:hidden; }
 .warn-card{ border-left:4px solid var(--danger); }
 .warn-card .k{ font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--danger); font-weight:700; margin-bottom:2px; }
 .warn-card div{ overflow-wrap:anywhere; }
+
+/* Stage 2 step 2: template chooser */
+.tpl{ display:block; width:100%; min-height:56px; text-align:left; font:inherit; color:var(--text); background:var(--soft); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px; cursor:pointer; }
+.tpl b{ display:block; }
+.tpl .sub{ display:block; margin-top:2px; }

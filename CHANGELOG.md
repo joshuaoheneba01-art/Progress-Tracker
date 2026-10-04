@@ -8,8 +8,8 @@ The version is shown at the bottom of **Settings** in the app.
 | Step | What | Status |
 |---|---|---|
 | 1 | Sleep guard | ✅ done (1.1.0) |
-| 2 | Templates: Student, Night owl, Early bird, McJayy's week | ⏳ next |
-| 3 | Timetable import: quick-add text, CSV, .ics, with a review screen | ⬜ |
+| 2 | Templates: Student, Night owl, Early bird, McJayy's week | ✅ done (1.2.0) |
+| 3 | Timetable import: quick-add text, CSV, .ics, with a review screen | ⏳ next |
 | 4 | Week generator from saved study goals | ⬜ |
 | 5 | Focus timer | ⬜ |
 | 6 | Catch-up list + one-off make-up blocks | ⬜ |
@@ -30,6 +30,22 @@ The version is shown at the bottom of **Settings** in the app.
 | 9 | README, SECURITY.md, final hardening pass | ✅ done |
 
 **Stage 1 is code-complete.** What's left is checking it on a real phone: build a week, use it offline, restart the phone, and let an alarm ring.
+
+## 1.2.0: Stage 2, step 2
+
+**Templates.**
+
+- **Four templates to start from:**
+  - **Student:** morning lectures, study in the afternoon and evening, in bed by 11:30pm.
+  - **Night owl:** late start, study into the night, in bed by 2am.
+  - **Early bird:** deep work at 6am, in bed by 10pm.
+  - **McJayy's week**, as an example.
+- **Where to find them:** the setup screen, or **Settings → Run setup again or load a template**. Loading a template keeps your projects, counters and settings.
+- **Offline:** templates are stored on the phone, so you can switch template in airplane mode.
+- **Treated like imports:** templates are JSON files in `templates/` that go through the same validator as backups. Only the timetable is taken from a template file. Any personal data in it is ignored.
+- **Checked automatically:** every template is tested for clean data, no overlaps and at least 7 h of sleep every night.
+- **McJayy's week** now comes from `templates/mcjayy.json` too. Moving data from the old app works exactly as before. If the template can't load (offline on the very first open), the old data waits safely and moves next time.
+- **Tests:** 91 automated tests.
 
 ## 1.1.0: Stage 2, step 1
 
