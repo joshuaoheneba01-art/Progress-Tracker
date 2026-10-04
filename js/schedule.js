@@ -284,3 +284,54 @@ export function addRecurring(state, opts) {
   }
   return { state: next, errors: [] };
 }
+
+// ---------- sleep guard ----------
+
+export const MIN_SLEEP = 7 * 60;
+
+// 285 → "4 h 45 min", 420 → "7 h"
+export function fmtDuration(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+
+const DAY_SHORT = { MON: "Mon", TUE: "Tue", WED: "Wed", THU: "Thu", FRI: "Fri", SAT: "Sat", SUN: "Sun" };
+
+// Sleep before each day. The night before D runs from the later of bedtime
+// and the previous day's last block, to the earlier of D's wake time and
+// D's first block. D's naps are added. Under 7 h gets a warning that names
+// the block cutting into sleep.
+// Returns [{ day, nightMin, napMin, totalMin, ok, late, early, message }].
+export function sleepReport(state) {
+  const bed = bedtimeMin(state.profile.bedtime);
+  return DAYS.map((day, i) => {
+    const prevDay = DAYS[(i + 6) % 7];
+    const prev = state.blocks.filter(b => b.day === prevDay);
+    const today = state.blocks.filter(b => b.day === day);
+    const wake = parseHHMM(state.profile.wake[day]);
+
+    const lastBlock = prev.reduce((a, b) => (!a || b.end > a.end ? b : a), null);
+    const firstBlock = today.reduce((a, b) => (!a || b.start < a.start ? b : a), null);
+    const late = lastBlock && lastBlock.end > bed ? lastBlock : null;
+    const early = firstBlock && firstBlock.start < wake ? firstBlock : null;
+
+    const sleepStart = late ? late.end : bed;               // previous day's minutes
+    const sleepEnd = (early ? early.start : wake) + DAY_MIN; // same scale
+    const nightMin = Math.max(0, sleepEnd - sleepStart);
+    const napMin = today.filter(b => b.kind === "nap").reduce((s, b) => s + dur(b), 0);
+    const totalMin = nightMin + napMin;
+    const ok = totalMin >= MIN_SLEEP;
+
+    let message = null;
+    if (!ok) {
+      const head = `${DAY_SHORT[day]}: only ${fmtDuration(totalMin)} of sleep`;
+      const lateTxt = late && `"${late.title}" (${DAY_SHORT[prevDay]}) runs until ${fmtTime(late.end)}`;
+      const earlyTxt = early && `"${early.title}" starts at ${fmtTime(early.start)}`;
+      if (late && early) message = `${head}. ${lateTxt} and ${earlyTxt}. Move one of them.`;
+      else if (late) message = `${head}. ${lateTxt}, past your ${fmtTime(bed)} bedtime. Move it earlier.`;
+      else if (early) message = `${head}. ${earlyTxt}, before your ${fmtTime(wake)} wake time. Move it later.`;
+      else message = `${head} between your ${fmtTime(bed)} bedtime and ${fmtTime(wake)} wake time. Go to bed earlier, wake later or add a nap.`;
+    }
+    return { day, nightMin, napMin, totalMin, ok, late, early, message };
+  });
+}

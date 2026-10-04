@@ -14,7 +14,7 @@ import {
 
 // Shown in Settings so you can tell which upgrade is live. Bump with each
 // release together with VERSION in sw.js (see CHANGELOG.md).
-const APP_VERSION = "1.0.0 · Stage 1";
+const APP_VERSION = "1.1.0 · Stage 2, step 1 of 7";
 
 const $ = id => document.getElementById(id);
 const app = $("app");

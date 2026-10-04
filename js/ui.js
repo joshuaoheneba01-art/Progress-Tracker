@@ -6,7 +6,7 @@
 import { DAYS, KINDS, PALETTE_SIZE, LIMITS } from "./schema.js";
 import {
   fmtRange, fmtHours, dur, blocksForDay, currentAndNext, dayStats, weekStats,
-  planned, sum, streak, weekStart, addDays, isoDate, findOverlaps,
+  planned, sum, streak, weekStart, addDays, isoDate, findOverlaps, sleepReport, fmtDuration,
 } from "./schedule.js";
 
 const DAY_NAMES = { MON: "Monday", TUE: "Tuesday", WED: "Wednesday", THU: "Thursday", FRI: "Friday", SAT: "Saturday", SUN: "Sunday" };
@@ -127,6 +127,14 @@ export function dayView(state, ctx) {
       el("div", { class: "sub mb8" }, "Nothing planned for this day."),
       btn("Plan this day", "goto-plan", sel, "btn pri")));
     return out;
+  }
+
+  const night = sleepReport(state).find(d => d.day === sel);
+  if (!night.ok) {
+    out.push(el("div", { class: "card warn-card" },
+      el("div", { class: "k" }, "😴 Sleep warning"),
+      el("div", { text: night.message }),
+      btn("Fix in Plan", "goto-plan", night.late ? night.late.day : sel, "link")));
   }
 
   const st = dayStats(state, ctx.wk, sel);
@@ -332,6 +340,14 @@ export function planView(state, ctx) {
         el("li", { text: `${a.day} ${fmtRange(a.start, a.end)} "${a.title}" and ${b.day} ${fmtRange(b.start, b.end)} "${b.title}"` })))));
   }
 
+  const sleep = sleepReport(state);
+  const short = sleep.filter(d => !d.ok);
+  if (short.length) {
+    out.push(el("div", { class: "banner warn", role: "alert" },
+      el("b", {}, "😴 Not enough sleep on some nights (aim for 7 h):"),
+      el("ul", { class: "errs" }, short.map(d => el("li", { text: d.message })))));
+  }
+
   out.push(el("div", { class: "card" },
     el("h3", {}, "You"),
     field("Name", el("input", { value: state.profile.name, maxlength: LIMITS.name, placeholder: "Your name", autocomplete: "given-name", data: { a: "prof-name" } })),
@@ -365,8 +381,18 @@ export function planView(state, ctx) {
     }) : el("div", { class: "sub mb8" }, "No blocks yet."),
     el("div", { class: "row mt8" }, btn("+ Add block", "blk-new", day, "btn pri"))));
 
+  out.push(sleepCard(sleep));
   out.push(categoriesCard(state));
   return out;
+}
+
+function sleepCard(sleep) {
+  return el("div", { class: "card" },
+    el("h3", {}, "Sleep before each day"),
+    sleep.map(d => el("div", { class: d.ok ? "srow" : "srow warn" },
+      el("span", {}, DAY_NAMES[d.day]),
+      el("span", {}, fmtDuration(d.totalMin) + (d.napMin ? ` (${fmtDuration(d.nightMin)} + ${fmtDuration(d.napMin)} nap)` : "")))),
+    el("div", { class: "sub mt8" }, "From bedtime (or your last block, if later) to wake time (or your first block, if earlier), plus that day's naps."));
 }
 
 function blockForm(state, ed) {
@@ -484,6 +510,13 @@ export function wizardView(wiz, { hasState, source }) {
       body.push(el("div", { class: "wz-day" }, el("b", {}, DAY_NAMES[day]),
         bs.length ? bs.map(b => el("div", { class: "sub", text: `${fmtRange(b.start, b.end)} · ${KIND_LABEL[b.kind]} · ${b.title}` }))
           : el("div", { class: "sub" }, "Free")));
+    }
+    const short = sleepReport(d).filter(x => !x.ok);
+    if (short.length) {
+      body.push(el("div", { class: "banner warn mt8" },
+        el("b", {}, "😴 Not enough sleep on some nights:"),
+        el("ul", { class: "errs" }, short.map(x => el("li", { text: x.message }))),
+        el("div", { class: "sub mt8" }, "Go Back to change times, or finish now and fix them in the Plan tab.")));
     }
     body.push(el("div", { class: "sub mt8" }, "You can change any block later in the Plan tab."));
     body.push(errorList(wiz.errors));

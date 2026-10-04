@@ -170,3 +170,11 @@ button.banner{ display:block; width:100%; min-height:48px; text-align:left; font
 body.alarm-open{ overflow:hidden; }
 @keyframes alarm-shake{ 0%,100%{ transform:rotate(0) } 20%{ transform:rotate(-14deg) } 40%{ transform:rotate(12deg) } 60%{ transform:rotate(-8deg) } 80%{ transform:rotate(5deg) } }
 @media (prefers-reduced-motion: reduce){ .alarm-bell{ animation:none; } }
+
+/* Stage 2 step 1: sleep guard */
+.srow{ display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-top:1px solid var(--line); font-size:13.5px; }
+.srow:first-of-type{ border-top:0; }
+.srow.warn{ color:var(--danger); font-weight:700; }
+.warn-card{ border-left:4px solid var(--danger); }
+.warn-card .k{ font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--danger); font-weight:700; margin-bottom:2px; }
+.warn-card div{ overflow-wrap:anywhere; }
