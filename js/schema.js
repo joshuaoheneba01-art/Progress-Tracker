@@ -21,6 +21,7 @@ export const LIMITS = {
   categories: 30,
   projects: 200,
   counters: 20,
+  goals: 30,
   weeks: 60,          // weeks of progress kept
   count: 100000,
   maxTime: 1800,      // 30 h study day, in minutes
@@ -53,7 +54,8 @@ export function defaultState() {
     progress: {},
     projects: [],
     counters: [],
-    settings: { remind: false, alarms: true, lead: 10, snooze: 10, lastBackup: 0, theme: "auto" },
+    goals: [],
+    settings: { remind: false, alarms: true, lead: 10, snooze: 10, lastBackup: 0, theme: "auto", maxStudyPerDay: 600, threeTouches: false },
   };
 }
 
@@ -159,7 +161,9 @@ export function validate(raw) {
       else note(`Block "${title}" pointed at a missing category; category cleared.`);
     }
     blockIds.add(b.id);
-    out.blocks.push({ id: b.id, day: b.day, start: b.start, end: b.end, title, kind: b.kind, cat });
+    const block = { id: b.id, day: b.day, start: b.start, end: b.end, title, kind: b.kind, cat };
+    if (b.gen === true && b.kind === "study") block.gen = true; // made by the week generator
+    out.blocks.push(block);
   }
 
   // progress: only weeks with valid keys, only ticks for study blocks that exist
@@ -176,6 +180,22 @@ export function validate(raw) {
       if (src[id] === true && studyIds.has(id)) { dst[id] = true; any = true; }
     }
     if (any) out.progress[wk] = dst;
+  }
+
+  // goals (week generator): hours in quarter-hours, sessions in 15-min steps
+  const goalIds = new Set();
+  for (const g of arr(raw.goals, "goals", note)) {
+    if (out.goals.length >= LIMITS.goals) { note("Too many goals; extras dropped."); break; }
+    if (!isPlainObject(g) || !isId(g.id) || goalIds.has(g.id)) { note("A goal had a bad or duplicate id and was dropped."); continue; }
+    const gtitle = cleanText(g.title, LIMITS.name);
+    const hrs = g.hoursPerWeek;
+    const okHrs = typeof hrs === "number" && Number.isFinite(hrs) && hrs >= 0.5 && hrs <= 60 && Number.isInteger(hrs * 4);
+    const okSess = n => isInt(n, 15, 300) && n % 15 === 0;
+    if (!gtitle || !okHrs || !okSess(g.sessionMin) || !okSess(g.sessionMax) || g.sessionMin > g.sessionMax) {
+      note("A goal had invalid values and was dropped."); continue;
+    }
+    goalIds.add(g.id);
+    out.goals.push({ id: g.id, title: gtitle, cat: isId(g.cat) && catIds.has(g.cat) ? g.cat : null, hoursPerWeek: hrs, sessionMin: g.sessionMin, sessionMax: g.sessionMax });
   }
 
   // projects
@@ -213,6 +233,8 @@ export function validate(raw) {
   if (isInt(s.lastBackup, 0, 8.64e15)) out.settings.lastBackup = s.lastBackup;
   if (THEMES.includes(s.theme)) out.settings.theme = s.theme;
   if (typeof s.alarms === "boolean") out.settings.alarms = s.alarms;
+  if (isInt(s.maxStudyPerDay, 60, 960) && s.maxStudyPerDay % 30 === 0) out.settings.maxStudyPerDay = s.maxStudyPerDay;
+  if (typeof s.threeTouches === "boolean") out.settings.threeTouches = s.threeTouches;
 
   return { ok: true, data: out, errors };
 }

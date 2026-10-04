@@ -10,6 +10,7 @@ A study timetable you build yourself: tick off study blocks, keep a streak and g
 - **Plan tab:** add, edit, copy and delete blocks. It catches overlaps and impossible times. Courses get their own colours.
 - **Sleep guard:** warns when a night has under 7 h of sleep (naps count) and names the block cutting into it.
 - **Import your class timetable** (Plan tab): paste lines like `Mon 9:30-11:30 CSC 415`, or choose a CSV or calendar (.ics) file. You review every class, with clashes and unreadable lines flagged, before anything is added. It is all read on your phone; nothing is uploaded.
+- **Week generator** (Plan → Study goals): say how many hours a week you want per subject, e.g. *CSC 415, 6 h, 1–2 h sessions*, and it fills your free time. It works around lectures (with a 30-minute buffer), naps and your own blocks, keeps 7 h of sleep and respects a daily study limit. You review the result before it is applied, with a list of anything that did not fit. Blocks you place yourself are never moved.
 - **Day tab:** what's on right now and what's next. Tap a study block to tick it off. Lectures show greyed (fixed, not ticked). Naps and wind-down are rest blocks.
 - **Progress:** completion by day, hours studied vs planned per course, streak, the previous 4 weeks, and counters (e.g. "modules finished").
 - **Projects:** a log of things you've built.
@@ -66,6 +67,7 @@ js/alarm.js           alarm overlay, sound, vibration
 js/reminders.js       reminder nudges + alarm scheduling
 js/ics.js             calendar export
 js/importers.js       timetable import: quick-add text, CSV, .ics (+ review preview)
+js/generator.js       week generator: study goals → sessions in your free time
 templates/*.json      built-in timetables (validated like any import)
 tests/*.test.js       node:test, no dependencies
 ```
@@ -94,11 +96,12 @@ They cover:
 { v: 1,
   profile:    { name, bedtime: "03:30", wake: { MON: "08:00", … } },
   categories: [{ id, name, color }],          // color = palette index 0–11
-  blocks:     [{ id, day: "MON", start: 990, end: 1170, title, kind: "study|lecture|nap|rest", cat }],
+  blocks:     [{ id, day: "MON", start: 990, end: 1170, title, kind: "study|lecture|nap|rest", cat, gen? }],  // gen: made by the generator
   progress:   { "2026-09-28": { "<blockId>": true } },   // week (Monday) → ticked study blocks
   projects:   [{ id, title, note, date }],
   counters:   [{ id, name, count }],
-  settings:   { remind, alarms, lead, snooze, lastBackup, theme } }
+  goals:      [{ id, title, cat, hoursPerWeek, sessionMin, sessionMax }],   // week generator
+  settings:   { remind, alarms, lead, snooze, lastBackup, theme, maxStudyPerDay, threeTouches } }
 ```
 
 Times are minutes from midnight of the study day, from 0 to 1800 (30 hours), so 1:30am is 1530.

@@ -5,6 +5,7 @@ import { defaultState, uid, isHHMM, isPlainObject, LIMITS, LEADS, SNOOZES, DAYS,
 import { studyDayOf, weekKey, toHHMM, isoDate, draftToBlock, addRecurring } from "./schedule.js";
 import { arm, isArmed, showAlarm, closeAlarm, currentAlarm } from "./alarm.js";
 import { parseTimetable, previewImport, IMPORT_LIMITS } from "./importers.js";
+import { generateWeek, goalFromDraft } from "./generator.js";
 import { loadState, saveState, TEMPLATES, loadTemplate, exportBackup, parseImport, needsBackup, isPersisted, requestPersist, KEY } from "./storage.js";
 import { buildICS } from "./ics.js";
 import { tabsBar, dayView, progressView, planView, projectsView, settingsView, wizardView, bannersView, toastNode } from "./ui.js";
@@ -15,7 +16,7 @@ import {
 
 // Shown in Settings so you can tell which upgrade is live. Bump with each
 // release together with VERSION in sw.js (see CHANGELOG.md).
-const APP_VERSION = "1.3.0 · Stage 2, step 3 of 7";
+const APP_VERSION = "1.4.0 · Stage 2, step 4 of 7";
 
 const $ = id => document.getElementById(id);
 const app = $("app");
@@ -27,6 +28,9 @@ let selDay = null;    // Day tab: null = follow today
 let planDay = null;   // Plan tab: null = follow today
 let editing = null;   // Plan tab form: { id, isNew, copy, draft, errors }
 let imp = null;       // Plan tab timetable import, see importPanel() in ui.js
+let goalEd = null;    // Plan tab goal form: { id, isNew, draft, errors }
+let genOpen = false;  // Plan tab: generator review showing
+let afterImport = false; // Plan tab: nudge to fill study time after an import
 let wiz = null;       // setup wizard, see newWizard()
 let deferredInstall = null;
 let waitingWorker = null;   // a new version that is installed and waiting
@@ -69,6 +73,9 @@ function context() {
     planDay: planDay || today.day,
     editing,
     imp,
+    goalEd,
+    afterImport,
+    gen: genOpen ? generateWeek(state) : null, // always from the current timetable
     perm: permission(),
     installed: (globalThis.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true,
     canInstall: !!deferredInstall,
@@ -134,6 +141,13 @@ function download(name, type, text) {
   document.body.append(a);
   a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+
+function focusGoal() {
+  const f = document.querySelector(".goal-form");
+  if (!f) return;
+  f.scrollIntoView({ block: "center" });
+  f.querySelector("input")?.focus({ preventScroll: true });
 }
 
 function focusForm() {
@@ -222,7 +236,7 @@ const wizClicks = {
 // ---------- actions ----------
 
 const clicks = {
-  "tab": k => { tab = k; editing = null; imp = null; render(); },
+  "tab": k => { tab = k; editing = null; imp = null; goalEd = null; genOpen = false; afterImport = false; render(); },
 
   // Plan: timetable import (nothing is saved until imp-apply)
   "imp-open": () => { imp = { phase: "input", impText: "", filename: "", parsed: null, choices: [] }; editing = null; render(); focusForm(); },
@@ -242,6 +256,7 @@ const clicks = {
     const p = previewImport(state, imp.parsed.rows, imp.choices);
     if (!p.added) { toast(["Nothing to add. Tick some classes or go back."]); return; }
     imp = null;
+    afterImport = true;
     if (commit(s => { s.blocks = p.state.blocks; s.categories = p.state.categories; })) {
       toast([`Added ${p.added} class${p.added === 1 ? "" : "es"} to your timetable.`]);
     }
@@ -283,6 +298,44 @@ const clicks = {
     if (!b || !confirm(`Delete "${b.title}" on ${b.day}?`)) return;
     if (editing && editing.id === k) editing = null;
     commit(s => { s.blocks = s.blocks.filter(x => x.id !== k); });
+  },
+
+  // Plan: study goals + week generator
+  "goal-new": () => {
+    goalEd = { id: uid(), isNew: true, errors: [], draft: { gSubject: "", gHours: "4", gMin: "60", gMax: "120" } };
+    genOpen = false; render(); focusGoal();
+  },
+  "goal-edit": k => {
+    const g = state.goals.find(x => x.id === k);
+    if (!g) return;
+    goalEd = { id: g.id, isNew: false, errors: [], draft: { gSubject: g.title, gHours: String(g.hoursPerWeek), gMin: String(g.sessionMin), gMax: String(g.sessionMax) } };
+    render(); focusGoal();
+  },
+  "goal-cancel": () => { goalEd = null; render(); },
+  "goal-save": () => {
+    const d = goalEd.draft;
+    const r = goalFromDraft({ subject: d.gSubject, hours: d.gHours, smin: d.gMin, smax: d.gMax }, state, goalEd.id);
+    if (r.errors.length) { goalEd.errors = r.errors; render(); focusGoal(); return; }
+    goalEd = null;
+    commit(s => { s.goals = r.state.goals; s.categories = r.state.categories; });
+  },
+  "goal-del": k => {
+    const g = state.goals.find(x => x.id === k);
+    if (g && confirm(`Delete the goal for "${g.title}"? Study blocks already in your week stay.`)) commit(s => { s.goals = s.goals.filter(x => x.id !== k); });
+  },
+  "three-touches": () => commit(s => { s.settings.threeTouches = !s.settings.threeTouches; }),
+  "gen-open": () => {
+    if (!state.goals.length) { toast(["Add a study goal first."]); return; }
+    goalEd = null; genOpen = true; render(); focusForm();
+  },
+  "gen-cancel": () => { genOpen = false; render(); },
+  "gen-apply": () => {
+    const r = generateWeek(state); // recomputed now, so it matches the current timetable
+    genOpen = false; afterImport = false;
+    if (commit(s => { s.blocks = r.blocks; })) {
+      const n = r.generated.length, short = r.goals.filter(g => g.missingMin).length;
+      toast([`Added ${n} study session${n === 1 ? "" : "s"}.` + (short ? ` ${short} goal${short === 1 ? "" : "s"} didn't fully fit; see the Plan tab.` : "")]);
+    }
   },
 
   // Plan: profile
@@ -425,6 +478,7 @@ function syncField(n) {
   if (wiz && f in wiz.form) wiz.form[f] = n.value;
   else if (editing && f in editing.draft) editing.draft[f] = n.value;
   else if (imp && f === "impText") imp.impText = n.value;
+  else if (goalEd && f in goalEd.draft) goalEd.draft[f] = n.value;
 }
 document.addEventListener("input", ev => { if (ev.target.dataset && ev.target.dataset.f) syncField(ev.target); });
 
@@ -453,6 +507,9 @@ document.addEventListener("change", ev => {
   if (a === "lead") {
     const v = +n.value;
     if (LEADS.includes(v)) commit(s => { s.settings.lead = v; });
+  } else if (a === "max-day") {
+    const v = +n.value;
+    if (Number.isInteger(v) && v >= 60 && v <= 960 && v % 30 === 0) commit(s => { s.settings.maxStudyPerDay = v; });
   } else if (a === "snooze-len") {
     const v = +n.value;
     if (SNOOZES.includes(v)) commit(s => { s.settings.snooze = v; });

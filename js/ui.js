@@ -6,6 +6,7 @@
 import { DAYS, KINDS, PALETTE_SIZE, LIMITS } from "./schema.js";
 import { TEMPLATES } from "./storage.js";
 import { previewImport } from "./importers.js";
+import { SESSION_CHOICES } from "./generator.js";
 import {
   fmtRange, fmtHours, dur, blocksForDay, currentAndNext, dayStats, weekStats,
   planned, sum, streak, weekStart, addDays, isoDate, findOverlaps, sleepReport, fmtDuration, inputToRange,
@@ -372,6 +373,14 @@ export function planView(state, ctx) {
     el("div", { class: "sub mb8" }, "Paste lines like \"Mon 9:30-11:30 CSC 415\", or choose a CSV or calendar (.ics) file. You'll review everything before it's added."),
     btn("Import timetable", "imp-open", undefined, "btn")));
 
+  if (ctx.afterImport && !ctx.gen) {
+    out.push(el("div", { class: "banner" },
+      el("div", { class: "mb8" }, "Classes added. Next: set how many hours a week you want for each subject, and the app fills your free time around them."),
+      btn("Fill my study time", state.goals.length ? "gen-open" : "goal-new", undefined, "btn pri")));
+  }
+  if (ctx.gen) out.push(genPanel(state, ctx.gen));
+  else out.push(goalsCard(state, ctx.goalEd));
+
   if (ctx.editing) out.push(blockForm(state, ctx.editing));
 
   const blocks = blocksForDay(state.blocks, day);
@@ -380,7 +389,7 @@ export function planView(state, ctx) {
     blocks.length ? blocks.map(b => {
       const cat = catOf(state, b.cat);
       return el("div", { class: `prow ${colorClass(state, b)}` },
-        el("div", { class: "tm", text: `${fmtRange(b.start, b.end)} · ${KIND_LABEL[b.kind]}${cat ? " · " + cat.name : ""}` }),
+        el("div", { class: "tm", text: `${fmtRange(b.start, b.end)} · ${KIND_LABEL[b.kind]}${cat ? " · " + cat.name : ""}${b.gen ? " · generated" : ""}` }),
         el("div", { class: "lb", text: b.title }),
         el("div", { class: "row wrap-row mt8" },
           btn("Edit", "blk-edit", b.id),
@@ -444,6 +453,80 @@ function importPanel(state, imp) {
       btn("Back", "imp-back"),
       btn("Cancel", "imp-cancel")))];
   return out;
+}
+
+// ---------- study goals + week generator ----------
+// goalEd: null or { id, isNew, draft: { gSubject, gHours, gMin, gMax }, errors }
+// gen: the result of generateWeek(state), shown for review before applying.
+
+const sessLabel = m => (m < 60 ? `${m} min` : fmtDuration(m));
+
+function goalsCard(state, goalEd) {
+  const st = state.settings;
+  const sessSelect = (f, value, label) => el("select", { class: "btn", "aria-label": label, data: { f } },
+    SESSION_CHOICES.map(m => el("option", { value: String(m), selected: String(m) === String(value) }, sessLabel(m))));
+  const form = goalEd && el("div", { class: "goal-form" },
+    field("Course or subject", el("input", { value: goalEd.draft.gSubject, maxlength: LIMITS.name, placeholder: "e.g. CSC 415", list: "goal-subjects", data: { f: "gSubject" } })),
+    el("datalist", { id: "goal-subjects" }, state.categories.map(c => el("option", { value: c.name }))),
+    field("Hours per week", el("input", { type: "number", inputmode: "decimal", min: "0.5", max: "60", step: "0.5", value: goalEd.draft.gHours, data: { f: "gHours" } })),
+    el("div", { class: "grid2" },
+      field("Shortest session", sessSelect("gMin", goalEd.draft.gMin, "Shortest session")),
+      field("Longest session", sessSelect("gMax", goalEd.draft.gMax, "Longest session"))),
+    errorList(goalEd.errors),
+    el("div", { class: "row wrap-row mt8" }, btn("Save goal", "goal-save", undefined, "btn pri"), btn("Cancel", "goal-cancel")));
+
+  return el("div", { class: goalEd ? "card form" : "card" },
+    el("h3", {}, "Study goals"),
+    el("div", { class: "sub mb8" }, "How many hours a week you want for each subject. The generator fills your free time around lectures, naps and the blocks you placed yourself."),
+    state.goals.map(g => el("div", { class: "goal-row" },
+      el("div", { class: "grow" },
+        el("div", { class: "lb", text: g.title }),
+        el("div", { class: "tm", text: `${fmtDuration(Math.round(g.hoursPerWeek * 60))} a week · sessions ${sessLabel(g.sessionMin)}–${sessLabel(g.sessionMax)}` })),
+      btn("Edit", "goal-edit", g.id),
+      btn("Delete", "goal-del", g.id, "btn danger"))),
+    form || btn("+ Add goal", "goal-new", undefined, "btn"),
+    el("div", { class: "row wrap-row mt8" },
+      el("select", { class: "btn", "aria-label": "Most study per day", data: { a: "max-day" } },
+        [120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 840, 960].map(m => el("option", { value: String(m), selected: m === st.maxStudyPerDay }, `Max ${m / 60} h a day`))),
+      el("button", { type: "button", class: st.threeTouches ? "btn toggle on" : "btn toggle", "aria-pressed": String(st.threeTouches), data: { a: "three-touches" } },
+        st.threeTouches ? "3 touches: on" : "3 touches: off")),
+    el("div", { class: "sub mt8" }, "3 touches: study each course the day before its lecture, the day after, and once more later in the week."),
+    el("div", { class: "row mt8" },
+      state.goals.length
+        ? btn("Generate my study week", "gen-open", undefined, "btn pri")
+        : el("div", { class: "sub" }, "Add a goal to generate your study week.")));
+}
+
+function genPanel(state, gen) {
+  const removed = state.blocks.filter(b => b.gen).length;
+  const total = gen.generated.reduce((s, b) => s + dur(b), 0);
+  const short = gen.goals.filter(g => g.missingMin > 0);
+  return el("div", { class: "card form" },
+    el("h3", {}, "Your generated study week"),
+    el("div", { class: "sub mb8" },
+      `${gen.generated.length} session${gen.generated.length === 1 ? "" : "s"}, ${fmtDuration(total)} in all.`
+      + (removed ? ` Replaces the ${removed} block${removed === 1 ? "" : "s"} generated last time.` : "")
+      + " Blocks you placed yourself are not changed."),
+    gen.goals.map(g => el("div", { class: g.missingMin ? "srow warn" : "srow" },
+      el("span", { text: g.title }),
+      el("span", { text: [
+        `goal ${fmtDuration(g.targetMin)}`,
+        g.haveMin && `${fmtDuration(g.haveMin)} placed by you`,
+        g.placedMin && `${fmtDuration(g.placedMin)} added`,
+        g.missingMin && `${fmtDuration(g.missingMin)} didn't fit`,
+      ].filter(Boolean).join(" · ") }))),
+    short.length > 0 && el("div", { class: "banner warn mt8" },
+      el("b", {}, "Not everything fit:"),
+      el("ul", { class: "errs" }, short.map(g => el("li", { text: `${g.title}: ${fmtDuration(g.missingMin)} short, because ${g.reason}.` })))),
+    gen.notes.length > 0 && el("ul", { class: "notes" }, gen.notes.map(n => el("li", { text: n }))),
+    DAYS.map(d => {
+      const bs = blocksForDay(gen.generated, d);
+      return bs.length ? el("div", { class: "wz-day" }, el("b", {}, DAY_NAMES[d]),
+        bs.map(b => el("div", { class: "sub", text: `${fmtRange(b.start, b.end)} · ${b.title}` }))) : null;
+    }),
+    el("div", { class: "row wrap-row mt8" },
+      btn(gen.generated.length || removed ? "Apply to my week" : "Nothing to change", "gen-apply", undefined, "btn pri"),
+      btn("Cancel", "gen-cancel")));
 }
 
 function sleepCard(sleep) {

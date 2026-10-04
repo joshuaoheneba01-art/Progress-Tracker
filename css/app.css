@@ -193,3 +193,10 @@ body.alarm-open{ overflow:hidden; }
 .imp-row.off .imp-check{ border-color:var(--line); }
 .imp-err{ color:var(--danger); font-size:12.5px; overflow-wrap:anywhere; }
 .imp-kind{ flex:0 0 auto; max-width:40%; }
+
+/* Stage 2 step 4: study goals + generator */
+.goal-row{ display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--line); }
+.goal-row:first-of-type{ border-top:0; }
+.goal-form{ border-top:1px solid var(--line); padding-top:10px; margin-top:4px; }
+.btn.toggle.on{ border-color:var(--accent); color:var(--accent); }
+.notes{ margin:8px 0 0; padding-left:18px; color:var(--muted); font-size:12.5px; }

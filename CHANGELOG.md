@@ -10,8 +10,8 @@ The version is shown at the bottom of **Settings** in the app.
 | 1 | Sleep guard | ✅ done (1.1.0) |
 | 2 | Templates: Student, Night owl, Early bird, McJayy's week | ✅ done (1.2.0) |
 | 3 | Timetable import: quick-add text, CSV, .ics, with a review screen | ✅ done (1.3.0) |
-| 4 | Week generator from saved study goals | ⏳ next |
-| 5 | Focus timer | ⬜ |
+| 4 | Week generator from saved study goals | ✅ done (1.4.0) |
+| 5 | Focus timer | ⏳ next |
 | 6 | Catch-up list + one-off make-up blocks | ⬜ |
 | 7 | Share a template by link | ⬜ |
 
@@ -30,6 +30,26 @@ The version is shown at the bottom of **Settings** in the app.
 | 9 | README, SECURITY.md, final hardening pass | ✅ done |
 
 **Stage 1 is code-complete.** What's left is checking it on a real phone: build a week, use it offline, restart the phone, and let an alarm ring.
+
+## 1.4.0: Stage 2, step 4
+
+**Week generator.** Plan → *Study goals*.
+
+- **Save a goal per subject:** hours per week, plus your shortest and longest session (e.g. *CSC 415: 6 h, sessions 1–2 h*). Goals are saved, so you can change one and run the generator again any time.
+- **Generate my study week** fills your free time with study sessions:
+  - **When:** from 30 minutes after you wake until bedtime. Your bedtime moves earlier if needed to keep 7 h of sleep.
+  - **Around what:** lectures (with 30 minutes clear on each side), naps, and blocks you placed yourself.
+  - **How much:** never more than your daily study limit (default 10 h, adjustable), with a 15-minute break after each session.
+  - **Spread out:** across different days, biggest goals first.
+  - **Counting what you have:** study you placed yourself for a subject counts toward its goal.
+  - **Optional "3 touches":** study each course the day before its lecture, the day after, and once more later in the week.
+- **Review before it's applied:**
+  - Every session is listed, day by day.
+  - Each goal shows its target, what you had already placed, what was added, and anything that didn't fit, with the reason (e.g. *"no free 1 h slot is left in your week"*).
+- **Re-running is safe:** only blocks the generator made before are replaced. Your own blocks are never moved. Edit a generated block in Plan and it becomes yours.
+- **Same input, same week:** the same timetable and goals always give the same result.
+- **After importing a timetable,** a **Fill my study time** button takes you straight to the generator.
+- **Tests:** 123 automated tests.
 
 ## 1.3.0: Stage 2, step 3
 
