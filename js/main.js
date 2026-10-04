@@ -3,7 +3,8 @@
 
 import { defaultState, uid, isHHMM, isPlainObject, LIMITS, LEADS, SNOOZES, DAYS, KINDS, PALETTE_SIZE } from "./schema.js";
 import { studyDayOf, weekKey, toHHMM, isoDate, draftToBlock, addRecurring } from "./schedule.js";
-import { arm, isArmed, showAlarm, closeAlarm, currentAlarm } from "./alarm.js";
+import { arm, isArmed, showAlarm, closeAlarm, currentAlarm, chime } from "./alarm.js";
+import { startFocus, pauseFocus, resumeFocus, isDone, remainingMs, progress, fmtClock } from "./focus.js";
 import { parseTimetable, previewImport, IMPORT_LIMITS } from "./importers.js";
 import { generateWeek, goalFromDraft } from "./generator.js";
 import { loadState, saveState, TEMPLATES, loadTemplate, exportBackup, parseImport, needsBackup, isPersisted, requestPersist, KEY } from "./storage.js";
@@ -16,7 +17,7 @@ import {
 
 // Shown in Settings so you can tell which upgrade is live. Bump with each
 // release together with VERSION in sw.js (see CHANGELOG.md).
-const APP_VERSION = "1.4.0 · Stage 2, step 4 of 7";
+const APP_VERSION = "1.5.0 · Stage 2, step 5 of 7";
 
 const $ = id => document.getElementById(id);
 const app = $("app");
@@ -109,8 +110,11 @@ function render() {
   }
   applyTheme();
   if (!state && !wiz) wiz = newWizard();
+  const f = state && state.focus;
+  const fb = f && state.blocks.find(b => b.id === f.blockId);
   const banners = bannersView({
     update: !!waitingWorker,
+    focus: !wiz && f && fb && tab !== "day" ? { time: fmtClock(remainingMs(f, Date.now())), title: fb.title, paused: f.pausedAt !== null } : null,
     arm: !wiz && !!state && state.settings.alarms && !isArmed(),
     backup: !wiz && !backupLater && needsBackup(state),
   });
@@ -298,6 +302,23 @@ const clicks = {
     if (!b || !confirm(`Delete "${b.title}" on ${b.day}?`)) return;
     if (editing && editing.id === k) editing = null;
     commit(s => { s.blocks = s.blocks.filter(x => x.id !== k); });
+  },
+
+  // Focus timer
+  "focus-start": k => {
+    const b = state.blocks.find(x => x.id === k);
+    if (!b || b.kind !== "study" || state.focus) return;
+    const sd = studyDayOf(new Date(), state.profile.bedtime);
+    const f = startFocus(b, isoDate(sd.date), sd.minute, Date.now());
+    arm(); // this tap also unlocks the finishing chime
+    if (commit(s => { s.focus = f; })) holdScreen(true);
+  },
+  "focus-pause": () => { if (commit(s => { s.focus = pauseFocus(s.focus, Date.now()); })) holdScreen(false); },
+  "focus-resume": () => { if (commit(s => { s.focus = resumeFocus(s.focus, Date.now()); })) holdScreen(true); },
+  "focus-finish": () => finishFocus(false),
+  "focus-stop": () => {
+    if (!confirm("Stop the focus timer? The block won't be ticked.")) return;
+    if (commit(s => { s.focus = null; })) holdScreen(false);
   },
 
   // Plan: study goals + week generator
@@ -552,6 +573,48 @@ function importFile(n) {
   }, () => toast(["That file could not be read."]));
 }
 
+// ---------- focus timer ----------
+// Time comes from timestamps (see focus.js); this ticker only refreshes the
+// numbers on screen and notices when the time is up.
+
+function finishFocus(timeUp, whileAway = false) {
+  const f = state && state.focus;
+  if (!f) return;
+  const b = state.blocks.find(x => x.id === f.blockId);
+  const [y, m, d] = f.date.split("-").map(Number);
+  const wk = weekKey(new Date(y, m - 1, d, 12));
+  if (!commit(s => { s.focus = null; (s.progress[wk] || (s.progress[wk] = {}))[f.blockId] = true; })) return;
+  holdScreen(false);
+  const title = b ? b.title : "Your block";
+  if (timeUp) chime();
+  toast([whileAway ? `Your focus session on "${title}" finished while you were away. Ticked.` : `Focus done: "${title}" is ticked. 🔥`]);
+  if (timeUp && document.hidden) showNote("Focus session done", `${title} is ticked. Take a break.`, "focus-done");
+}
+
+function tickFocus() {
+  const f = state && state.focus;
+  if (!f || framed) return;
+  if (isDone(f, Date.now())) { finishFocus(true); return; }
+  const text = fmtClock(remainingMs(f, Date.now()));
+  for (const n of document.querySelectorAll(".js-focus-time")) n.textContent = text;
+  document.getElementById("focus-bar")?.style.setProperty("--w", `${Math.round(progress(f, Date.now()) * 100)}%`);
+}
+setInterval(tickFocus, 1000);
+
+// Keep the screen on while a focus session runs (where supported).
+let wakeLock = null;
+async function holdScreen(on) {
+  try {
+    if (on && !wakeLock && navigator.wakeLock && !document.hidden) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    } else if (!on && wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch { /* not supported or refused: the timer works anyway */ }
+}
+
 // ---------- alarms ----------
 
 function fireAlarm(a) {
@@ -615,6 +678,8 @@ document.addEventListener("visibilitychange", () => {
   if (!state) return;
   checkReminders(state);
   tickAlarms();
+  if (state.focus && isDone(state.focus, Date.now())) finishFocus(true);
+  else if (state.focus && state.focus.pausedAt === null) holdScreen(true);
   if (!wiz && (tab === "day" || tab === "progress") && !typing()) render();
 });
 
@@ -681,6 +746,7 @@ function readAlarmHash() {
   history.replaceState(null, "", location.pathname + location.search); // never leave a link half-handled
   if (m) alarmAction(m[1], m[2]);
 }
+if (state && state.focus && isDone(state.focus, Date.now())) finishFocus(false, true);
 readAlarmHash();
 window.addEventListener("hashchange", readAlarmHash);
 tickAlarms();

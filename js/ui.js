@@ -6,6 +6,7 @@
 import { DAYS, KINDS, PALETTE_SIZE, LIMITS } from "./schema.js";
 import { TEMPLATES } from "./storage.js";
 import { previewImport } from "./importers.js";
+import { remainingMs, progress, fmtClock } from "./focus.js";
 import { SESSION_CHOICES } from "./generator.js";
 import {
   fmtRange, fmtHours, dur, blocksForDay, currentAndNext, dayStats, weekStats,
@@ -101,6 +102,7 @@ export function dayView(state, ctx) {
   const sel = ctx.selDay, isToday = sel === ctx.today.day;
   const ticks = state.progress[ctx.wk] || {};
   const out = [hero(state, ctx)];
+  if (state.focus) out.push(focusCard(state, ctx));
 
   out.push(el("div", { class: "days" }, DAYS.map(d => {
     const s = dayStats(state, ctx.wk, d), p = s.tot ? Math.round((100 * s.done) / s.tot) : 0;
@@ -115,11 +117,15 @@ export function dayView(state, ctx) {
     const { cur, next } = currentAndNext(blocks, ctx.today.minute);
     const b = cur || next;
     if (cur) curId = cur.id;
+    // Focus on the current study block, or (if it's done or not study) start the next one early.
+    const canFocus = x => x && x.kind === "study" && !ticks[x.id] && !state.focus;
+    const focusOn = canFocus(b) ? b : canFocus(next) ? next : null;
     out.push(b
       ? el("div", { class: "card now" },
           el("div", { class: "k" }, cur ? "Right now" : "Up next"),
           el("div", { class: "v", text: b.title }),
-          el("div", { class: "sub" }, fmtRange(b.start, b.end)))
+          el("div", { class: "sub" }, fmtRange(b.start, b.end)),
+          focusOn && btn(focusOn === b ? "Start focus" : `Start focus on "${focusOn.title}"`, "focus-start", focusOn.id, "btn pri mt8"))
       : el("div", { class: "card now" },
           el("div", { class: "k" }, "Day finished"),
           el("div", { class: "v" }, "Rest up. Tomorrow you go again.")));
@@ -167,6 +173,29 @@ export function dayView(state, ctx) {
     }, el("span", { class: "chk", "aria-hidden": "true" }, "✓"), body, cat && el("span", { class: "tag", text: cat.name })));
   }
   return out;
+}
+
+// ---------- focus timer ----------
+// The countdown text and bar are refreshed every second by main.js
+// (.js-focus-time, #focus-bar) without redrawing the page.
+
+function focusCard(state, ctx) {
+  const f = state.focus;
+  const b = state.blocks.find(x => x.id === f.blockId);
+  const nowMs = ctx.now.getTime();
+  const left = remainingMs(f, nowMs);
+  const paused = f.pausedAt !== null;
+  const endsAt = new Date(nowMs + left).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return el("div", { class: `card focus-card ${colorClass(state, b)}`, role: "timer", "aria-label": "Focus timer" },
+    el("div", { class: "k" }, paused ? "🎯 Focus · paused" : "🎯 Focus"),
+    el("div", { class: "v", text: b.title }),
+    el("div", { class: "focus-time js-focus-time", text: fmtClock(left) }),
+    el("div", { class: "track" }, el("i", { id: "focus-bar", vars: { w: `${Math.round(progress(f, nowMs) * 100)}%` } })),
+    el("div", { class: "sub mt8", text: paused ? "Paused. Tap Resume when you're back." : `Ends at ${endsAt}. Finishing ticks the block.` }),
+    el("div", { class: "row wrap-row mt8" },
+      paused ? btn("Resume", "focus-resume", undefined, "btn pri") : btn("Pause", "focus-pause"),
+      btn("Finish now", "focus-finish"),
+      btn("Stop", "focus-stop", undefined, "btn danger")));
 }
 
 // ---------- Progress ----------
@@ -682,6 +711,10 @@ export function wizardView(wiz, { hasState, source }) {
 // Banners above every view. b: { update, backup }
 export function bannersView(b) {
   const out = [];
+  if (b.focus) {
+    out.push(el("button", { type: "button", class: "banner focus-mini", data: { a: "tab", k: "day" } },
+      "🎯 ", el("b", { class: "js-focus-time", text: b.focus.time }), ` left · ${b.focus.title}${b.focus.paused ? " (paused)" : ""}`));
+  }
   if (b.update) {
     out.push(el("button", { type: "button", class: "banner update", data: { a: "update" } },
       el("b", {}, "Update ready"), " · tap to refresh"));

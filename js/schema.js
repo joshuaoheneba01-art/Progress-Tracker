@@ -55,6 +55,7 @@ export function defaultState() {
     projects: [],
     counters: [],
     goals: [],
+    focus: null,  // running focus timer, see focus.js
     settings: { remind: false, alarms: true, lead: 10, snooze: 10, lastBackup: 0, theme: "auto", maxStudyPerDay: 600, threeTouches: false },
   };
 }
@@ -182,6 +183,10 @@ export function validate(raw) {
     if (any) out.progress[wk] = dst;
   }
 
+  // focus timer: anything off → no timer, never a half-valid one
+  out.focus = cleanFocus(raw.focus, studyIds);
+  if (raw.focus != null && !out.focus) note("The focus timer was invalid and was cleared.");
+
   // goals (week generator): hours in quarter-hours, sessions in 15-min steps
   const goalIds = new Set();
   for (const g of arr(raw.goals, "goals", note)) {
@@ -243,4 +248,14 @@ function arr(x, label, note) {
   if (x === undefined) return [];
   if (!Array.isArray(x)) { note(`${label} was not a list and was reset.`); return []; }
   return x;
+}
+
+const MAX_MS = 8.64e15; // largest valid Date value
+
+function cleanFocus(f, studyIds) {
+  if (!isPlainObject(f)) return null;
+  if (!isId(f.blockId) || !studyIds.has(f.blockId) || !isWeekKey(f.date)) return null;
+  if (!isInt(f.startedAt, 0, MAX_MS) || !isInt(f.pausedMs, 0, MAX_MS) || !isInt(f.durationMin, 1, LIMITS.maxTime)) return null;
+  if (f.pausedAt !== null && !isInt(f.pausedAt, f.startedAt, MAX_MS)) return null;
+  return { blockId: f.blockId, date: f.date, startedAt: f.startedAt, pausedAt: f.pausedAt, pausedMs: f.pausedMs, durationMin: f.durationMin };
 }

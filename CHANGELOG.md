@@ -11,8 +11,8 @@ The version is shown at the bottom of **Settings** in the app.
 | 2 | Templates: Student, Night owl, Early bird, McJayy's week | ✅ done (1.2.0) |
 | 3 | Timetable import: quick-add text, CSV, .ics, with a review screen | ✅ done (1.3.0) |
 | 4 | Week generator from saved study goals | ✅ done (1.4.0) |
-| 5 | Focus timer | ⏳ next |
-| 6 | Catch-up list + one-off make-up blocks | ⬜ |
+| 5 | Focus timer | ✅ done (1.5.0) |
+| 6 | Catch-up list + one-off make-up blocks | ⏳ next |
 | 7 | Share a template by link | ⬜ |
 
 ## Stage 1 progress
@@ -30,6 +30,22 @@ The version is shown at the bottom of **Settings** in the app.
 | 9 | README, SECURITY.md, final hardening pass | ✅ done |
 
 **Stage 1 is code-complete.** What's left is checking it on a real phone: build a week, use it offline, restart the phone, and let an alarm ring.
+
+## 1.5.0: Stage 2, step 5
+
+**Focus timer.**
+
+- **Start it:** tap **Start focus** on the current study block in the Day tab. If that block is already done, the button offers the next study block so you can start early.
+- **The timer:**
+  - A big countdown and progress bar on the Day tab, with **Pause**, **Resume**, **Finish now** and **Stop**.
+  - Other tabs show a small "🎯 23:10 left" banner that takes you back to the Day tab.
+- **Length:** started during the block, it runs until the block ends. Started before or after, it runs for the block's full length.
+- **Accurate even when the phone sleeps:** time is worked out from clock times, not counted seconds, so it stays right if the phone sleeps, the browser pauses the page, or the app reloads.
+  - If the time ran out while the app was closed, the block is ticked the next time you open it, with a note saying so.
+- **Finishing ticks the block** (for the correct week), with a chime and a vibration. **Stop** ends the session without ticking.
+- **Screen stays on** while a session runs, where the browser supports it.
+- **Checked like all saved data:** the timer is validated on every read. A timer pointing at a deleted or non-study block, or with impossible times, is simply cleared.
+- **Tests:** 130 automated tests.
 
 ## 1.4.0: Stage 2, step 4
 

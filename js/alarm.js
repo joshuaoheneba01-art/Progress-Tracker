@@ -60,6 +60,13 @@ function ring() {
   try { navigator.vibrate?.([500, 200, 500, 200, 500]); } catch { /* not supported */ }
 }
 
+// A short, friendly three-note chime (focus timer finished).
+export function chime() {
+  if (isArmed()) [523, 659, 784].forEach((f, i) => tone(i * 0.18, f, 0.35, 0.25));
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
+  try { navigator.vibrate?.([200, 100, 200]); } catch { /* not supported */ }
+}
+
 function overlay(alarm, snoozeOptions) {
   const late = Math.max(0, Math.round((Date.now() - alarm.firedAt) / 60000));
   return el("div", { class: "alarm", role: "alertdialog", "aria-modal": "true", "aria-labelledby": "alarm-title" },

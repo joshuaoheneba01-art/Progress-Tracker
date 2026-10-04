@@ -200,3 +200,11 @@ body.alarm-open{ overflow:hidden; }
 .goal-form{ border-top:1px solid var(--line); padding-top:10px; margin-top:4px; }
 .btn.toggle.on{ border-color:var(--accent); color:var(--accent); }
 .notes{ margin:8px 0 0; padding-left:18px; color:var(--muted); font-size:12.5px; }
+
+/* Stage 2 step 5: focus timer */
+.focus-card{ border-left:5px solid var(--c); }
+.focus-card .k{ font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--accent); font-weight:700; }
+.focus-card .v{ font-weight:700; margin-top:2px; overflow-wrap:anywhere; }
+.focus-time{ font-size:48px; font-weight:800; letter-spacing:1px; text-align:center; margin:8px 0; font-variant-numeric:tabular-nums; }
+.focus-mini{ background:var(--soft); }
+.focus-mini b{ font-variant-numeric:tabular-nums; }
