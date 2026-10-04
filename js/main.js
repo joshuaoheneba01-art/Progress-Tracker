@@ -14,7 +14,7 @@ import {
 
 // Shown in Settings so you can tell which upgrade is live. Bump with each
 // release together with VERSION in sw.js (see CHANGELOG.md).
-const APP_VERSION = "0.8.1 · Stage 1, step 8 of 9";
+const APP_VERSION = "0.9.0 · Stage 1, step 9 of 9";
 
 const $ = id => document.getElementById(id);
 const app = $("app");
@@ -84,7 +84,19 @@ function applyTheme() {
 
 const VIEWS = { day: dayView, progress: progressView, plan: planView, projects: projectsView, settings: settingsView };
 
+// Clickjacking guard. GitHub Pages can't send the frame-ancestors header, so
+// if another site loads us in a frame we refuse to show anything tappable.
+let framed = false;
+try { framed = window.top !== window.self; } catch { framed = true; }
+
 function render() {
+  if (framed) {
+    app.replaceChildren(Object.assign(document.createElement("div"), {
+      className: "card",
+      textContent: "For your safety, Stick-to-it does not run inside other websites. Open it directly in your browser.",
+    }));
+    return;
+  }
   applyTheme();
   if (!state && !wiz) wiz = newWizard();
   const banners = bannersView({
@@ -363,7 +375,7 @@ function openBlock(k, copy) {
 
 document.addEventListener("click", ev => {
   const n = ev.target.closest("[data-a]");
-  if (!n || n.tagName === "SELECT" || n.tagName === "INPUT") return;
+  if (framed || !n || n.tagName === "SELECT" || n.tagName === "INPUT") return;
   const a = n.dataset.a, k = n.dataset.k;
   if (wiz && wizClicks[a]) {
     if (!wizClicks[a](k)) render();
@@ -441,7 +453,7 @@ function snoozeAlarm(a, minutes) {
 }
 
 function tickAlarms() {
-  if (!state) return;
+  if (!state || framed) return;
   const r = dueAlarms(state, new Date(), loadAlarmStore());
   saveAlarmStore(r.store);
   r.fire.forEach(fireAlarm);

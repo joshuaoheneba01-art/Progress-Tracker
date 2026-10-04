@@ -6,7 +6,7 @@
 // - Other apps on the same github.io origin are left alone: we only ever
 //   delete caches whose names start with "stick-".
 
-const VERSION = "0.8.1";
+const VERSION = "0.9.0";
 const PREFIX = "stick-";
 const CACHE = PREFIX + VERSION;
 

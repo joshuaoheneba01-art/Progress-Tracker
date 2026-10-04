@@ -15,7 +15,24 @@ The version is shown at the bottom of **Settings** in the app.
 | 6 | Setup wizard + Plan tab (timetable editor) | ✅ done |
 | 7 | Offline service worker, "Update ready" banner, storage protection, backup nudge | ✅ done |
 | 8 | In-app alarm (Snooze / Dismiss) + notification actions | ✅ done |
-| 9 | README, SECURITY.md, final hardening pass | ⏳ next |
+| 9 | README, SECURITY.md, final hardening pass | ✅ done |
+
+**Stage 1 is code-complete.** What's left is checking it on a real phone: build a week, use it offline, restart the phone, and let an alarm ring.
+
+## 0.9.0: Stage 1, step 9
+
+**Documentation and a final security pass.**
+
+- **README.md** replaces README.txt. It covers what the app does, how to install it, the honest limits on alarms, privacy, and notes for developers.
+- **SECURITY.md** sets out what's protected, the threats and how each is handled, and the known limits of GitHub Pages. It also has a ready-made `_headers` file for moving to Netlify or Cloudflare Pages.
+- **Clickjacking guard:** if another website tries to show the app inside a frame, the app refuses to run and shows a warning instead.
+- **Security rules checked automatically:** new tests fail if anyone adds any of these:
+  - `innerHTML` or `eval`,
+  - inline styles or scripts,
+  - a CDN or third-party URL,
+  - a file that isn't saved for offline use,
+  - mismatched version numbers.
+- **Tests:** 73 automated tests.
 
 ## 0.8.1
 
