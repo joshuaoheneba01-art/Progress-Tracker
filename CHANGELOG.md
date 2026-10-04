@@ -19,6 +19,10 @@ The version is shown at the bottom of **Settings** in the app.
 
 **Stage 1 is code-complete.** What's left is checking it on a real phone: build a week, use it offline, restart the phone, and let an alarm ring.
 
+## 1.0.0: Stage 1 complete
+
+Stage 1 is released: anyone can build their own week, track it offline and get in-app alarms. There are no code changes since 0.9.0. The next work is Stage 2.
+
 ## 0.9.0: Stage 1, step 9
 
 **Documentation and a final security pass.**
